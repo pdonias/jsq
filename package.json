@@ -1,0 +1,12 @@
+{
+  "name": "jsq",
+  "version": "1.0.0",
+  "main": "index.js",
+  "keywords": ["jq", "JavaScript", "JSON", "query", "tool"],
+  "author": "Pierre Donias",
+  "license": "MIT",
+  "description": "A CLI JSON query tool with JavaScript syntax",
+  "bin": {
+    "jsq": "./index.js"
+  }
+}
