@@ -6,7 +6,7 @@ Like [`jq`](https://stedolan.github.io/jq/), but using plain JavaScript syntax.
 
 From NPM:
 ```
-npm i -g jsq
+npm i -g jsq-cli
 ```
 
 or from source:
