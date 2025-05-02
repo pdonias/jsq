@@ -25,6 +25,6 @@ bar
 
 Supports JavaScript syntax:
 ```bash
-$ echo '{ "foo": "bar" }' | jsq "const keys = Object.keys(this); return keys.length"
+$ echo '{ "foo": "bar" }' | jsq "const keys = Object.keys(this); keys.length"
 1
 ```
