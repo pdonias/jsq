@@ -1,23 +1,29 @@
 # jsq
 
-Like [`jq`](https://stedolan.github.io/jq/), but using plain JavaScript syntax.
+A command-line JSON processor like [`jq`](https://stedolan.github.io/jq/), but using JavaScript syntax.
 
 ## Install
 
-```
-npm i -g jsq-cli
+```bash
+npm install --global jsq-cli
 ```
 
 ## Usage
 
 Access properties like `jq`:
 ```bash
-$ echo '{ "foo": "bar" }' | jsq '.foo'
-bar
-```
-
-Or use more complex expressions with JavaScript:
-```bash
-$ echo '{ "foo": "bar" }' | jsq "const keys = Object.keys($); keys.length"
+$ echo '{ "foo": 1, "bar": 2 }' | jsq .foo
 1
 ```
+
+Or use full JavaScript expressions:
+```bash
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'keys = Object.keys($); keys.map(key => key + "=" + $[key]).join("; ")'
+'foo=1; bar=2'
+```
+
+- The parsed JSON input is available as `$`
+- Your expression is plain JavaScript, and supports multiple statements
+- The result is the value of the last evaluated statement
+- Each top-level property of the input object is also available globally (`foo` instead of `$.foo`)
+- You can omit `$` as the first character of the expression (`.foo` is treated as `$.foo`)

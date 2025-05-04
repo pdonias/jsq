@@ -1,6 +1,6 @@
 {
   "name": "jsq-cli",
-  "description": "A CLI JSON query tool with JavaScript syntax",
+  "description": "A Command-line JSON content extractor with JavaScript syntax",
   "version": "1.0.0",
   "author": "Pierre Donias <pierre.donias@gmail.com>",
   "license": "MIT",
