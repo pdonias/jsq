@@ -10,6 +10,10 @@ npm install --global jsq-cli
 
 ## Usage
 
+```bash
+$ <command> | jsq [--json] <expression>
+```
+
 Access properties like `jq`:
 ```bash
 $ echo '{ "foo": 1, "bar": 2 }' | jsq .foo
@@ -27,3 +31,4 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq 'keys = Object.keys($); keys.map(key => ke
 - The result is the value of the last evaluated statement
 - Each top-level property of the input object is also available globally (`foo` instead of `$.foo`)
 - You can omit `$` as the first character of the expression (`.foo` is treated as `$.foo`)
+- Use `--json` to get a raw JSON output

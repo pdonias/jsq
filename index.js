@@ -13,8 +13,13 @@ const PRINT_OPTIONS = {
 }
 
 let code = process.argv[2] || ''
-if (process.stdin.isTTY || ['-h', '--help'].includes(code) || process.argv[3] !== undefined) {
-  console.log('Usage: <command> | jsq <expression>')
+const jsonOutput = code === '--json'
+if (jsonOutput) {
+  code = process.argv[3] || ''
+}
+
+if (process.stdin.isTTY || ['-h', '--help'].includes(code) || process.argv.length > 4) {
+  console.log('Usage: <command> | jsq [--json] <expression>')
   console.log("Example: curl -s https://api.github.com/users/octocat | jsq .followers")
   console.log('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
 
@@ -36,10 +41,17 @@ process.stdin.on('end', () => {
   Object.defineProperties(context, Object.getOwnPropertyDescriptors($))
   context.$ = $
 
-  const json = JSON.stringify(script.runInContext(context))
-  if (json !== undefined) {
-    console.log(util.inspect(JSON.parse(json), PRINT_OPTIONS))
+  const result = script.runInContext(context)
+
+  if (result === undefined) {
+    if (!jsonOutput) {
+      console.log('undefined') // Show explicit undefined to humans
+    }
   } else {
-    console.log('undefined')
+    if (jsonOutput) {
+      console.log(JSON.stringify(result))
+    } else {
+      console.log(util.inspect(result, PRINT_OPTIONS))
+    }
   }
 })
