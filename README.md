@@ -4,27 +4,20 @@ Like [`jq`](https://stedolan.github.io/jq/), but using plain JavaScript syntax.
 
 ## Install
 
-From NPM:
 ```
 npm i -g jsq-cli
 ```
 
-or from source:
-```
-git clone git@github.com/pdonias/jsq
-cd jsq
-npm i -g .
-```
-
 ## Usage
 
+Access properties like `jq`:
 ```bash
-$ echo '{ "foo": "bar" }' | jsq 'this.foo'
+$ echo '{ "foo": "bar" }' | jsq '.foo'
 bar
 ```
 
-Supports JavaScript syntax:
+Or use more complex expressions with JavaScript:
 ```bash
-$ echo '{ "foo": "bar" }' | jsq "const keys = Object.keys(this); keys.length"
+$ echo '{ "foo": "bar" }' | jsq "const keys = Object.keys($); keys.length"
 1
 ```
