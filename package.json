@@ -1,7 +1,10 @@
 {
   "name": "jsq-cli",
+  "description": "A CLI JSON query tool with JavaScript syntax",
   "version": "1.0.0",
-  "main": "index.js",
+  "author": "Pierre Donias <pierre.donias@gmail.com>",
+  "license": "MIT",
+  "repository": "https://github.com/pdonias/jsq",
   "keywords": [
     "jq",
     "JavaScript",
@@ -9,10 +12,10 @@
     "query",
     "tool"
   ],
-  "author": "Pierre Donias",
-  "license": "MIT",
-  "description": "A CLI JSON query tool with JavaScript syntax",
   "bin": {
     "jsq": "index.js"
+  },
+  "engines": {
+    "node": ">=6.4.0"
   }
 }
