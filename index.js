@@ -20,7 +20,7 @@ if (jsonOutput) {
 
 if (process.stdin.isTTY || ['-h', '--help'].includes(code) || process.argv.length > 4) {
   console.log('Usage: <command> | jsq [--json] <expression>')
-  console.log("Example: curl -s https://api.github.com/users/octocat | jsq .followers")
+  console.log('Example: curl -s https://api.github.com/users/octocat | jsq .followers')
   console.log('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
 
   process.exit(0)
@@ -28,6 +28,10 @@ if (process.stdin.isTTY || ['-h', '--help'].includes(code) || process.argv.lengt
 
 if (code === '' || code.startsWith('.')) {
   code = '$' + code
+}
+
+if (code === '$.') {
+  code = '$'
 }
 
 const script = new vm.Script(code)
