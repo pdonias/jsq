@@ -12,7 +12,7 @@ const PRINT_OPTIONS = {
   compact: 3,
 }
 
-const INPUT_SYMBOL = '_'
+const INPUT_SYMBOL = process.env.SYMBOL || '_'
 
 let expression = process.argv[2] || ''
 const jsonOutput = expression === '--json'
