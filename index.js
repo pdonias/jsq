@@ -53,15 +53,19 @@ process.stdin.on('end', () => {
 
   const result = script.runInContext(context)
 
-  if (result === undefined) {
-    if (!jsonOutput) {
-      console.log('undefined') // Show explicit undefined to humans
-    }
-  } else {
-    if (jsonOutput) {
+  if (jsonOutput) {
+    if (result !== undefined) {
       console.log(JSON.stringify(result))
-    } else {
-      console.log(util.inspect(result, PRINT_OPTIONS))
     }
+    // If the result is undefined, make the JSON output empty
+    return
   }
+
+  // Don't show quotes if result is a string
+  if (typeof result === 'string') {
+    console.log(result)
+    return
+  }
+
+  console.log(util.inspect(result, PRINT_OPTIONS))
 })
