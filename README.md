@@ -22,8 +22,8 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq .foo
 
 Or use full JavaScript expressions:
 ```bash
-$ echo '{ "foo": 1, "bar": 2 }' | jsq 'keys = Object.keys(_); keys.map(key => key + "=" + _[key]).join("; ")'
-'foo=1; bar=2'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.keys(_).map(key => `${key}=${_[key]}`).join("; ")'
+foo=1; bar=2
 ```
 
 - The parsed JSON input is available as `_`
