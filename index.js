@@ -14,58 +14,98 @@ const PRINT_OPTIONS = {
 
 const INPUT_SYMBOL = process.env.SYMBOL || '_'
 
-let expression = process.argv[2] || ''
-const jsonOutput = expression === '--json'
-if (jsonOutput) {
-  expression = process.argv[3] || ''
+const ARGS_SCHEMA = {
+  json: 'boolean',
+  help: 'boolean',
+  version: 'boolean',
 }
 
-if (process.stdin.isTTY || ['-h', '--help'].includes(expression) || process.argv.length > 4) {
+function parseArgs(argv) {
+  const args = {
+    _: [],
+  }
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i]
+    if (!arg.startsWith('--')) {
+      args._.push(arg)
+      continue
+    }
+
+    const name = arg.slice(2)
+    const type = ARGS_SCHEMA[name]
+    switch (type) {
+      case 'boolean': args[name] = true; break;
+      case 'string': args[name] = argv[++i]; break;
+      default: usage(); throw new Error(`Unexpected arg ${arg}`)
+    }
+  }
+
+  return args
+}
+
+function usage() {
+  console.log(`v${require('./package.json').version}`)
   console.log('Usage: <command> | jsq [--json] <expression>')
   console.log('Example: curl -s https://api.github.com/users/octocat | jsq .followers')
   console.log('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
-
-  process.exit(0)
 }
 
-if (expression === '' || expression.startsWith('.')) {
-  expression = INPUT_SYMBOL + expression
-}
+// -----------------------------------------------------------------------------
 
-if (expression === INPUT_SYMBOL + '.') {
-  expression = INPUT_SYMBOL
-}
+function main() {
+  let {
+    _: [expression = ''],
+    json: jsonOutput = false,
+    help,
+    version,
+  } = parseArgs(process.argv)
 
-if (process.env.DEBUG === '1') {
-  console.log('Expression: ' + expression)
-}
+  if (help || version || process.stdin.isTTY) {
+    usage()
+    process.exit(help || version ? 0 : 1)
+  }
 
-const script = new vm.Script(expression)
+  if (expression === '' || expression.startsWith('.')) {
+    expression = INPUT_SYMBOL + expression
+  }
 
-let input = ''
-process.stdin.setEncoding('utf8')
-process.stdin.on('data', chunk => (input += chunk))
-process.stdin.on('end', () => {
-  const inputObject = JSON.parse(input)
-  const context = vm.createContext()
-  Object.defineProperties(context, Object.getOwnPropertyDescriptors(inputObject))
-  context[INPUT_SYMBOL] = inputObject
+  if (expression === INPUT_SYMBOL + '.') {
+    expression = INPUT_SYMBOL
+  }
 
-  const result = script.runInContext(context)
+  if (process.env.DEBUG === '1') {
+    console.log('Expression: ' + expression)
+  }
 
-  if (jsonOutput) {
-    if (result !== undefined) {
-      console.log(JSON.stringify(result))
+  const script = new vm.Script(expression)
+
+  let input = ''
+  process.stdin.setEncoding('utf8')
+  process.stdin.on('data', chunk => (input += chunk))
+  process.stdin.on('end', () => {
+    const inputObject = JSON.parse(input)
+    const context = vm.createContext()
+    Object.defineProperties(context, Object.getOwnPropertyDescriptors(inputObject))
+    context[INPUT_SYMBOL] = inputObject
+
+    const result = script.runInContext(context)
+
+    if (jsonOutput) {
+      if (result !== undefined) {
+        console.log(JSON.stringify(result))
+      }
+      // If the result is undefined, make the JSON output empty
+      return
     }
-    // If the result is undefined, make the JSON output empty
-    return
-  }
 
-  // Don't show quotes if result is a string
-  if (typeof result === 'string') {
-    console.log(result)
-    return
-  }
+    // Don't show quotes if result is a string
+    if (typeof result === 'string') {
+      console.log(result)
+      return
+    }
 
-  console.log(util.inspect(result, PRINT_OPTIONS))
-})
+    console.log(util.inspect(result, PRINT_OPTIONS))
+  })
+}
+
+main()
