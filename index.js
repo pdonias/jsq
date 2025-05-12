@@ -16,6 +16,7 @@ const INPUT_SYMBOL = process.env.SYMBOL || '_'
 
 const ARGS_SCHEMA = {
   json: 'boolean',
+  depth: 'number',
   help: 'boolean',
   version: 'boolean',
 }
@@ -36,6 +37,7 @@ function parseArgs(argv) {
     switch (type) {
       case 'boolean': args[name] = true; break;
       case 'string': args[name] = argv[++i]; break;
+      case 'number': args[name] = +argv[++i]; break;
       default: usage(); throw new Error(`Unexpected arg ${arg}`)
     }
   }
@@ -45,7 +47,7 @@ function parseArgs(argv) {
 
 function usage() {
   console.log(`v${require('./package.json').version}`)
-  console.log('Usage: <command> | jsq [--json] <expression>')
+  console.log('Usage: <command> | jsq <expression> [--json] [--depth <depth>]')
   console.log('Example: curl -s https://api.github.com/users/octocat | jsq .followers')
   console.log('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
 }
@@ -56,6 +58,7 @@ function main() {
   let {
     _: [expression = ''],
     json: jsonOutput = false,
+    depth,
     help,
     version,
   } = parseArgs(process.argv)
@@ -63,6 +66,10 @@ function main() {
   if (help || version || process.stdin.isTTY) {
     usage()
     process.exit(help || version ? 0 : 1)
+  }
+
+  if (depth !== undefined) {
+    PRINT_OPTIONS.depth = depth
   }
 
   if (expression === '' || expression.startsWith('.')) {
@@ -85,6 +92,7 @@ function main() {
   process.stdin.on('end', () => {
     const inputObject = JSON.parse(input)
     const context = vm.createContext()
+
     Object.defineProperties(context, Object.getOwnPropertyDescriptors(inputObject))
     context[INPUT_SYMBOL] = inputObject
 
