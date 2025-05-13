@@ -2,6 +2,12 @@
 
 const util = require('util')
 const vm = require('vm')
+const os = require('os')
+const path = require('path')
+const fs = require('fs').promises
+
+const CACHE = path.join(os.tmpdir(), 'jsq', 'last.json')
+const INPUT_SYMBOL = process.env.SYMBOL || '_'
 
 const PRINT_OPTIONS = {
   depth: Infinity,
@@ -11,8 +17,6 @@ const PRINT_OPTIONS = {
   breakLength: process.stdout.columns,
   compact: 3,
 }
-
-const INPUT_SYMBOL = process.env.SYMBOL || '_'
 
 const ARGS_SCHEMA = {
   json: 'boolean',
@@ -35,10 +39,18 @@ function parseArgs(argv) {
     const name = arg.slice(2)
     const type = ARGS_SCHEMA[name]
     switch (type) {
-      case 'boolean': args[name] = true; break;
-      case 'string': args[name] = argv[++i]; break;
-      case 'number': args[name] = +argv[++i]; break;
-      default: usage(); throw new Error(`Unexpected arg ${arg}`)
+      case 'boolean':
+        args[name] = true
+        break
+      case 'string':
+        args[name] = argv[++i]
+        break
+      case 'number':
+        args[name] = +argv[++i]
+        break
+      default:
+        usage()
+        throw new Error(`Unexpected arg ${arg}`)
     }
   }
 
@@ -52,9 +64,28 @@ function usage() {
   console.log('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
 }
 
-// -----------------------------------------------------------------------------
+function readStdin() {
+  return new Promise((resolve, reject) => {
+    let body = ''
+    process.stdin.setEncoding('utf8')
+    process.stdin.on('data', chunk => (body += chunk))
+    process.stdin.on('end', () => resolve(body))
+    process.stdin.on('error', reject)
+  })
+}
 
-function main() {
+async function fileExists(path) {
+  try {
+    await fs.access(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// =============================================================================
+
+async function main() {
   let {
     _: [expression = ''],
     json: jsonOutput = false,
@@ -63,19 +94,21 @@ function main() {
     version,
   } = parseArgs(process.argv)
 
-  if (help || version || process.stdin.isTTY) {
+  if (help || version) {
     usage()
-    process.exit(help || version ? 0 : 1)
+    return
   }
 
   if (depth !== undefined) {
     PRINT_OPTIONS.depth = depth
   }
 
+  // Support expressions "" and ".prop"
   if (expression === '' || expression.startsWith('.')) {
     expression = INPUT_SYMBOL + expression
   }
 
+  // Support expression "."
   if (expression === INPUT_SYMBOL + '.') {
     expression = INPUT_SYMBOL
   }
@@ -84,36 +117,51 @@ function main() {
     console.log('Expression: ' + expression)
   }
 
+  // Input ---------------------------------------------------------------------
+
+  // Fallback to cached JSON file if nothing was piped. Error if cache is also empty.
+  if (process.stdin.isTTY && !(await fileExists(CACHE))) {
+    console.error('Nothing to read from stdin.\n')
+    usage()
+    process.exit(1)
+  }
+
+  const input = process.stdin.isTTY ? await fs.readFile(CACHE, 'utf8') : await readStdin()
+  const inputObject = JSON.parse(input)
+
+  // Cache JSON for later runs, only if it was piped and if JSON is valid
+  if (!process.stdin.isTTY) {
+    await fs.mkdir(path.dirname(CACHE), { recursive: true })
+    await fs.writeFile(CACHE, input)
+  }
+
+  // Evaluate ------------------------------------------------------------------
+
+  const context = vm.createContext()
+
+  Object.defineProperties(context, Object.getOwnPropertyDescriptors(inputObject))
+  context[INPUT_SYMBOL] = inputObject
+
   const script = new vm.Script(expression)
+  const result = script.runInContext(context)
 
-  let input = ''
-  process.stdin.setEncoding('utf8')
-  process.stdin.on('data', chunk => (input += chunk))
-  process.stdin.on('end', () => {
-    const inputObject = JSON.parse(input)
-    const context = vm.createContext()
+  // Output --------------------------------------------------------------------
 
-    Object.defineProperties(context, Object.getOwnPropertyDescriptors(inputObject))
-    context[INPUT_SYMBOL] = inputObject
-
-    const result = script.runInContext(context)
-
-    if (jsonOutput) {
-      if (result !== undefined) {
-        console.log(JSON.stringify(result))
-      }
-      // If the result is undefined, make the JSON output empty
-      return
+  if (jsonOutput) {
+    if (result !== undefined) {
+      console.log(JSON.stringify(result))
     }
+    // If the result is undefined, make the JSON output empty
+    return
+  }
 
-    // Don't show quotes if result is a string
-    if (typeof result === 'string') {
-      console.log(result)
-      return
-    }
+  // Don't show quotes if result is a string
+  if (typeof result === 'string') {
+    console.log(result)
+    return
+  }
 
-    console.log(util.inspect(result, PRINT_OPTIONS))
-  })
+  console.log(util.inspect(result, PRINT_OPTIONS))
 }
 
 main()

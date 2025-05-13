@@ -33,3 +33,4 @@ foo=1; bar=2
 - You can omit `_` as the first character of the expression (`.foo` is treated as `_.foo`)
 - Use `--json` to get a raw JSON output
 - Use `--depth` to configure how deep the result object will be rendered (ignored if `--json` is passed)
+- Remembers the last JSON input: if you're working on the same JSON input multiple times, you only need to pipe it the first time
