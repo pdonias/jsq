@@ -103,14 +103,14 @@ async function main() {
     PRINT_OPTIONS.depth = depth
   }
 
+  // Support expression "."
+  if (expression === '.') {
+    expression = INPUT_SYMBOL
+  }
+
   // Support expressions "" and ".prop"
   if (expression === '' || expression.startsWith('.')) {
     expression = INPUT_SYMBOL + expression
-  }
-
-  // Support expression "."
-  if (expression === INPUT_SYMBOL + '.') {
-    expression = INPUT_SYMBOL
   }
 
   if (process.env.DEBUG === '1') {
