@@ -127,7 +127,13 @@ async function main() {
   }
 
   const input = process.stdin.isTTY ? await fs.readFile(CACHE, 'utf8') : await readStdin()
-  const inputObject = JSON.parse(input)
+  let inputObject
+  try {
+    inputObject = JSON.parse(input)
+  } catch {
+    // Support NDJSON
+    inputObject = input.trim().split('\n').map(line => JSON.parse(line))
+  }
 
   // Cache JSON for later runs, only if it was piped and if JSON is valid
   if (!process.stdin.isTTY) {
