@@ -58,19 +58,31 @@ function parseArgs(argv) {
 }
 
 function usage() {
-  console.log(`v${require('./package.json').version}`)
-  console.log('Usage: <command> | jsq <expression> [--json] [--depth <depth>]')
-  console.log('Example: curl -s https://api.github.com/users/octocat | jsq .followers')
-  console.log('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
+  console.error(`v${require('./package.json').version}`)
+  console.error('Usage: <command> | jsq <expression> [--json] [--depth <depth>]')
+  console.error('Example: curl -s https://api.github.com/users/octocat | jsq .followers')
+  console.error('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
 }
 
 function readStdin() {
   return new Promise((resolve, reject) => {
     let body = ''
     process.stdin.setEncoding('utf8')
-    process.stdin.on('data', chunk => (body += chunk))
+    process.stdin.on('data', chunk => {
+      if (process.env.DEBUG === '1') {
+        process.stderr.write(chunk)
+      }
+      body += chunk
+    })
     process.stdin.on('end', () => resolve(body))
     process.stdin.on('error', reject)
+    process.on('SIGINT', function onSigint() {
+      if (process.env.DEBUG === '1') {
+        console.error('\nReceived SIGINT, ending input')
+      }
+      process.stdin.emit('end')
+      process.off('SIGINT', onSigint)
+    })
   })
 }
 
@@ -113,10 +125,6 @@ async function main() {
     expression = INPUT_SYMBOL + expression
   }
 
-  if (process.env.DEBUG === '1') {
-    console.log('Expression: ' + expression)
-  }
-
   // Input ---------------------------------------------------------------------
 
   // Fallback to cached JSON file if nothing was piped. Error if cache is also empty.
@@ -127,12 +135,20 @@ async function main() {
   }
 
   const input = process.stdin.isTTY ? await fs.readFile(CACHE, 'utf8') : await readStdin()
+  if (input.trim() === '') {
+    console.error('Input is empty.')
+    return
+  }
+
   let inputObject
   try {
     inputObject = JSON.parse(input)
   } catch {
     // Support NDJSON
-    inputObject = input.trim().split('\n').map(line => JSON.parse(line))
+    inputObject = input
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line))
   }
 
   // Cache JSON for later runs, only if it was piped and if JSON is valid
@@ -142,6 +158,10 @@ async function main() {
   }
 
   // Evaluate ------------------------------------------------------------------
+
+  if (process.env.DEBUG === '1') {
+    console.error('\nExpression: ' + expression)
+  }
 
   const context = vm.createContext()
 

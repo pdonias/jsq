@@ -34,4 +34,4 @@ foo=1; bar=2
 - Use `--json` to get a raw JSON output
 - Use `--depth` to configure how deep the result object will be rendered (ignored if `--json` is passed)
 - Remembers the last JSON input: if you're working on the same JSON input multiple times, you only need to pipe it the first time
-- Supports NDJSON
+- Supports NDJSON. Early interrupt input with `Ctrl+C`. Use `--no-buffer` on `curl` to force it to write immediately to stdout.
