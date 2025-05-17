@@ -167,6 +167,10 @@ async function main() {
 
   Object.defineProperties(context, Object.getOwnPropertyDescriptors(inputObject))
   context[INPUT_SYMBOL] = inputObject
+  context.console = {
+    log: (...args) => console.error('\x1b[34m' + util.format(...args) + '\x1b[0m'),
+    error: (...args) => console.error('\x1b[31m' + util.format(...args) + '\x1b[0m'),
+  }
 
   const script = new vm.Script(expression)
   const result = script.runInContext(context)
