@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const childProcess = require('child_process')
 const util = require('util')
 const vm = require('vm')
 const os = require('os')
@@ -21,6 +22,7 @@ const PRINT_OPTIONS = {
 const ARGS_SCHEMA = {
   json: 'boolean',
   depth: 'number',
+  resolve: 'string',
   help: 'boolean',
   version: 'boolean',
 }
@@ -102,6 +104,7 @@ async function main() {
     _: [expression = ''],
     json: jsonOutput = false,
     depth,
+    resolve,
     help,
     version,
   } = parseArgs(process.argv)
@@ -170,6 +173,10 @@ async function main() {
   context.console = {
     log: (...args) => console.error('\x1b[34m' + util.format(...args) + '\x1b[0m'),
     error: (...args) => console.error('\x1b[31m' + util.format(...args) + '\x1b[0m'),
+  }
+
+  if (resolve !== undefined) {
+    context.resolve = value => JSON.parse(childProcess.execSync(resolve.replace(/\{\}/g, value), { encoding: 'utf8' }))
   }
 
   const script = new vm.Script(expression)
