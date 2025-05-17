@@ -7,7 +7,7 @@ const os = require('os')
 const path = require('path')
 const fs = require('fs').promises
 
-const CACHE = path.join(os.tmpdir(), 'jsq', 'last.json')
+const CACHE = path.join(os.tmpdir(), 'jsq')
 const INPUT_SYMBOL = process.env.SYMBOL || '_'
 
 const PRINT_OPTIONS = {
@@ -128,16 +128,19 @@ async function main() {
     expression = INPUT_SYMBOL + expression
   }
 
+  await fs.mkdir(CACHE, { recursive: true })
+
   // Input ---------------------------------------------------------------------
 
   // Fallback to cached JSON file if nothing was piped. Error if cache is also empty.
-  if (process.stdin.isTTY && !(await fileExists(CACHE))) {
+  const inputCacheFile = path.join(CACHE, 'last.json')
+  if (process.stdin.isTTY && !(await fileExists(inputCacheFile))) {
     console.error('Nothing to read from stdin.\n')
     usage()
     process.exit(1)
   }
 
-  const input = process.stdin.isTTY ? await fs.readFile(CACHE, 'utf8') : await readStdin()
+  const input = process.stdin.isTTY ? await fs.readFile(inputCacheFile, 'utf8') : await readStdin()
   if (input.trim() === '') {
     console.error('Input is empty.')
     return
@@ -156,8 +159,7 @@ async function main() {
 
   // Cache JSON for later runs, only if it was piped and if JSON is valid
   if (!process.stdin.isTTY) {
-    await fs.mkdir(path.dirname(CACHE), { recursive: true })
-    await fs.writeFile(CACHE, input)
+    await fs.writeFile(inputCacheFile, input)
   }
 
   // Evaluate ------------------------------------------------------------------
@@ -173,6 +175,13 @@ async function main() {
   context.console = {
     log: (...args) => console.error('\x1b[34m' + util.format(...args) + '\x1b[0m'),
     error: (...args) => console.error('\x1b[31m' + util.format(...args) + '\x1b[0m'),
+  }
+
+  const resolveCacheFile = path.join(CACHE, 'resolve.txt')
+  if (resolve !== undefined) {
+    await fs.writeFile(resolveCacheFile, resolve)
+  } else if (await fileExists(resolveCacheFile)) {
+    resolve = await fs.readFile(resolveCacheFile, 'utf8')
   }
 
   if (resolve !== undefined) {
