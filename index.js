@@ -132,23 +132,19 @@ async function main() {
 
   // Input ---------------------------------------------------------------------
 
-  // Fallback to cached JSON file if nothing was piped. Error if cache is also empty.
+  let input
   const inputCacheFile = path.join(CACHE, 'last.json')
-  if (process.stdin.isTTY && !(await fileExists(inputCacheFile))) {
-    console.error('Nothing to read from stdin.\n')
-    usage()
-    process.exit(1)
-  }
 
-  const input = process.stdin.isTTY ? await fs.readFile(inputCacheFile, 'utf8') : await readStdin()
-  if (input.trim() === '') {
-    console.error('Input is empty.')
-    return
+  // Read input JSON from stdin or fallback to cache
+  if (!process.stdin.isTTY) {
+    input = await readStdin()
+  } else if (await fileExists(inputCacheFile)) {
+    input = await fs.readFile(inputCacheFile, 'utf8')
   }
 
   let inputObject
   try {
-    inputObject = JSON.parse(input)
+    inputObject = input === undefined || input.trim() === '' ? undefined : JSON.parse(input)
   } catch {
     // Support NDJSON
     inputObject = input
@@ -170,7 +166,10 @@ async function main() {
 
   const context = vm.createContext()
 
-  Object.defineProperties(context, Object.getOwnPropertyDescriptors(inputObject))
+  if (inputObject !== undefined) {
+    Object.defineProperties(context, Object.getOwnPropertyDescriptors(inputObject))
+  }
+
   context[INPUT_SYMBOL] = inputObject
   context.console = {
     log: (...args) => console.error('\x1b[34m' + util.format(...args) + '\x1b[0m'),
