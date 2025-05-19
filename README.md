@@ -11,7 +11,7 @@ npm install --global jsq-cli
 ## Usage
 
 ```bash
-$ <command> | jsq <expression> [--json] [--depth <depth>]
+$ <command> | jsq <expression> [--json] [--depth <depth>] [--resolve <command>]
 ```
 
 Access properties like `jq`:
