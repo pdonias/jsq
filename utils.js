@@ -31,4 +31,42 @@ module.exports = {
       return false
     }
   },
+
+  parse(text) {
+    if (text == null || typeof text !== 'string' || text.trim() === '') {
+      return text
+    }
+
+    try {
+      return JSON.parse(text)
+    } catch (err) {
+      if (!(err instanceof SyntaxError)) {
+        throw err
+      }
+
+      try {
+        // Support NDJSON
+        return text
+          .trim()
+          .split('\n')
+          .map(line => JSON.parse(line))
+      } catch (err) {
+        if (!(err instanceof SyntaxError)) {
+          throw err
+        }
+
+        return text
+      }
+    }
+
+    try {
+      inputObject = input === undefined || input.trim() === '' ? undefined : JSON.parse(input)
+    } catch {
+      // Support NDJSON
+      inputObject = input
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+    }
+  },
 }

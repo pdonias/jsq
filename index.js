@@ -8,7 +8,7 @@ const util = require('util')
 const vm = require('vm')
 const yargs = require('yargs/yargs')(process.argv.slice(2))
 
-const { fileExists, readStdin } = require('./utils')
+const { fileExists, readStdin, parse } = require('./utils')
 
 const CACHE = path.join(os.tmpdir(), 'jsq')
 const INPUT_SYMBOL = process.env.SYMBOL || '_'
@@ -86,25 +86,12 @@ async function main({ expression, json: jsonOutput, depth, resolve }) {
   // Read input JSON from stdin or fallback to cache
   if (!process.stdin.isTTY) {
     input = await readStdin()
+    await fs.writeFile(inputCacheFile, input)
   } else if (await fileExists(inputCacheFile)) {
     input = await fs.readFile(inputCacheFile, 'utf8')
   }
 
-  let inputObject
-  try {
-    inputObject = input === undefined || input.trim() === '' ? undefined : JSON.parse(input)
-  } catch {
-    // Support NDJSON
-    inputObject = input
-      .trim()
-      .split('\n')
-      .map(line => JSON.parse(line))
-  }
-
-  // Cache JSON for later runs, only if it was piped and if JSON is valid
-  if (!process.stdin.isTTY) {
-    await fs.writeFile(inputCacheFile, input)
-  }
+  const inputObject = parse(input)
 
   // Evaluate ------------------------------------------------------------------
 
@@ -134,7 +121,7 @@ async function main({ expression, json: jsonOutput, depth, resolve }) {
   }
 
   if (resolve !== undefined) {
-    const resolveFn = value => JSON.parse(childProcess.execSync(resolve.replaceAll('{}', value), { encoding: 'utf8' }))
+    const resolveFn = value => parse(childProcess.execSync(resolve.replaceAll('{}', value), { encoding: 'utf8' }))
     Object.defineProperty(resolveFn, 'cmd', {
       value: resolve,
       writable: false,
