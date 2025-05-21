@@ -16,6 +16,10 @@
   "bin": {
     "jsq": "index.js"
   },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node jsq.test.js"
+  },
   "engines": {
     "node": ">=6.4.0"
   },
