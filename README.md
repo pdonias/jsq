@@ -32,7 +32,7 @@ foo=1; bar=2
 - Each top-level property of the input object is also available globally (`foo` instead of `_.foo`)
 - You can omit `_` as the first character of the expression (`.foo` is treated as `_.foo`)
 - Remembers the last JSON input: if you're working on the same JSON input multiple times, you only need to pipe it the first time
-- Supports NDJSON. Early interrupt input with `Ctrl+C`. Use `--no-buffer` on `curl` to force it to write immediately to stdout.
+- Supports NDJSON. Early interrupt input with <kbd>Ctrl</kbd> + <kbd>C</kbd>. Use `--no-buffer` on `curl` to force it to write immediately to stdout.
 - Use `--json` to get a raw JSON output
 - Use `--depth` to configure how deep the result object will be rendered (ignored if `--json` is passed)
 - Use `--resolve` to pass a command that will resolve an ID, a URL, ... Then you can use `resolve(id)` in the expression. `{}` will be replaced by the `id` in your command`
