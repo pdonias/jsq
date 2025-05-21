@@ -114,14 +114,16 @@ async function main({ expression, json: jsonOutput, depth, resolve }) {
 
   const context = vm.createContext()
 
-  if (inputObject !== undefined) {
-    Object.defineProperties(context, Object.getOwnPropertyDescriptors(inputObject))
-  }
-
   context[INPUT_SYMBOL] = inputObject
   context.console = {
     log: (...args) => console.error('\x1b[34m' + util.format(...args) + '\x1b[0m'),
     error: (...args) => console.error('\x1b[31m' + util.format(...args) + '\x1b[0m'),
+  }
+
+  let explicitOutput = false
+  context.echo = arg => {
+    explicitOutput = true
+    output(arg)
   }
 
   const resolveCacheFile = path.join(CACHE, 'resolve.txt')
@@ -146,27 +148,34 @@ async function main({ expression, json: jsonOutput, depth, resolve }) {
 
   // Output --------------------------------------------------------------------
 
-  if (jsonOutput) {
-    if (result !== undefined) {
-      console.log(JSON.stringify(result))
+  if (!explicitOutput) {
+    // Expression uses the explicit return() function: don't use the last statement as output
+    output(result)
+  }
+
+  function output(result) {
+    if (jsonOutput) {
+      if (result !== undefined) {
+        console.log(JSON.stringify(result))
+      }
+      // If the result is undefined, make the JSON output empty
+      return
     }
-    // If the result is undefined, make the JSON output empty
-    return
-  }
 
-  // Inspect resolver
-  if (typeof result === 'function' && result.cmd !== undefined) {
-    console.log(result.cmd)
-    return
-  }
+    // Inspect resolver
+    if (typeof result === 'function' && result.cmd !== undefined) {
+      console.log(result.cmd)
+      return
+    }
 
-  // Don't show quotes if result is a string
-  if (typeof result === 'string') {
-    console.log(result)
-    return
-  }
+    // Don't show quotes if result is a string
+    if (typeof result === 'string') {
+      console.log(result)
+      return
+    }
 
-  console.log(util.inspect(result, PRINT_OPTIONS))
+    console.log(util.inspect(result, PRINT_OPTIONS))
+  }
 }
 
 main(yargs.argv)
