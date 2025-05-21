@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 const childProcess = require('child_process')
-const util = require('util')
-const vm = require('vm')
+const fs = require('fs').promises
 const os = require('os')
 const path = require('path')
-const fs = require('fs').promises
+const util = require('util')
+const vm = require('vm')
+const yargs = require('yargs/yargs')(process.argv.slice(2))
 
 const CACHE = path.join(os.tmpdir(), 'jsq')
 const INPUT_SYMBOL = process.env.SYMBOL || '_'
@@ -19,52 +20,42 @@ const PRINT_OPTIONS = {
   compact: 3,
 }
 
-const ARGS_SCHEMA = {
-  json: 'boolean',
-  depth: 'number',
-  resolve: 'string',
-  help: 'boolean',
-  version: 'boolean',
-}
+// =============================================================================
 
-function parseArgs(argv) {
-  const args = {
-    _: [],
-  }
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i]
-    if (!arg.startsWith('--')) {
-      args._.push(arg)
-      continue
-    }
-
-    const name = arg.slice(2)
-    const type = ARGS_SCHEMA[name]
-    switch (type) {
-      case 'boolean':
-        args[name] = true
-        break
-      case 'string':
-        args[name] = argv[++i]
-        break
-      case 'number':
-        args[name] = +argv[++i]
-        break
-      default:
-        usage()
-        throw new Error(`Unexpected arg ${arg}`)
-    }
-  }
-
-  return args
-}
-
-function usage() {
-  console.error(`v${require('./package.json').version}`)
-  console.error('Usage: <command> | jsq <expression> [--json] [--depth <depth>]')
-  console.error('Example: curl -s https://api.github.com/users/octocat | jsq .followers')
-  console.error('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
-}
+yargs
+  .locale('en')
+  .strict()
+  .usage('[command] | jsq [expression]')
+  .example('curl -s https://api.github.com/users/octocat | jsq .followers')
+  .epilog('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
+  .command('$0 [expression]', false, yargs =>
+    yargs
+      .positional('command', {
+        description: 'Any command that outputs JSON can be piped into jsq',
+        type: 'string',
+      })
+      .positional('expression', {
+        description: 'Process the output of command with a JavaScript expression',
+        default: '',
+        type: 'string',
+      })
+  )
+  .option('json', {
+    type: 'boolean',
+    description: 'JSON output instead of pretty print',
+    default: false,
+  })
+  .option('depth', {
+    type: 'number',
+    alias: 'd',
+    description: 'How deep the result object will be rendered',
+  })
+  .option('resolve', {
+    type: 'string',
+    description:
+      'Configure a resolve command command to be used as resolve() in the expression. e.g.: curl https://api.com/users/{}',
+  })
+  .conflicts('json', 'depth')
 
 function readStdin() {
   return new Promise((resolve, reject) => {
@@ -99,21 +90,7 @@ async function fileExists(path) {
 
 // =============================================================================
 
-async function main() {
-  let {
-    _: [expression = ''],
-    json: jsonOutput = false,
-    depth,
-    resolve,
-    help,
-    version,
-  } = parseArgs(process.argv)
-
-  if (help || version) {
-    usage()
-    return
-  }
-
+async function main({ expression, json: jsonOutput, depth, resolve }) {
   if (depth !== undefined) {
     PRINT_OPTIONS.depth = depth
   }
@@ -209,4 +186,4 @@ async function main() {
   console.log(util.inspect(result, PRINT_OPTIONS))
 }
 
-main()
+main(yargs.argv)

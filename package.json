@@ -18,5 +18,8 @@
   },
   "engines": {
     "node": ">=6.4.0"
+  },
+  "dependencies": {
+    "yargs": "^17.7.2"
   }
 }
