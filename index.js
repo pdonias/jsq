@@ -57,7 +57,6 @@ yargs
     description:
       'Configure a resolve command command to be used as resolve() in the expression. e.g.: curl https://api.com/users/{}',
   })
-  .conflicts('json', 'depth')
 
 // =============================================================================
 
