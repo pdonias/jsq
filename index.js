@@ -161,7 +161,13 @@ async function main({ expression, json: jsonOutput, depth, resolve }) {
   }
 
   if (resolve !== undefined) {
-    context.resolve = value => JSON.parse(childProcess.execSync(resolve.replace(/\{\}/g, value), { encoding: 'utf8' }))
+    const resolveFn = value => JSON.parse(childProcess.execSync(resolve.replaceAll('{}', value), { encoding: 'utf8' }))
+    Object.defineProperty(resolveFn, 'cmd', {
+      value: resolve,
+      writable: false,
+      enumerable: false,
+    })
+    context.resolve = resolveFn
   }
 
   const script = new vm.Script(expression)
@@ -174,6 +180,12 @@ async function main({ expression, json: jsonOutput, depth, resolve }) {
       console.log(JSON.stringify(result))
     }
     // If the result is undefined, make the JSON output empty
+    return
+  }
+
+  // Inspect resolver
+  if (typeof result === 'function' && result.cmd !== undefined) {
+    console.log(result.cmd)
     return
   }
 

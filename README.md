@@ -28,7 +28,7 @@ foo=1; bar=2
 
 - The parsed JSON input is available as `_`
 - Your expression is plain JavaScript: it supports multiple statements, variable declaration, if statements, etc.
-- The result is the value of the last evaluated statement
+- The result is the value of the last evaluated statement. If the last statement is an object, wrap it with `({ ... })` so that Node doesn't interpret it as a block.
 - Each top-level property of the input object is also available globally (`foo` instead of `_.foo`)
 - You can omit `_` as the first character of the expression (`.foo` is treated as `_.foo`)
 - Remembers the last JSON input: if you're working on the same JSON input multiple times, you only need to pipe it the first time
