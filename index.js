@@ -8,6 +8,8 @@ const util = require('util')
 const vm = require('vm')
 const yargs = require('yargs/yargs')(process.argv.slice(2))
 
+const { fileExists, readStdin } = require('./utils')
+
 const CACHE = path.join(os.tmpdir(), 'jsq')
 const INPUT_SYMBOL = process.env.SYMBOL || '_'
 
@@ -56,37 +58,6 @@ yargs
       'Configure a resolve command command to be used as resolve() in the expression. e.g.: curl https://api.com/users/{}',
   })
   .conflicts('json', 'depth')
-
-function readStdin() {
-  return new Promise((resolve, reject) => {
-    let body = ''
-    process.stdin.setEncoding('utf8')
-    process.stdin.on('data', chunk => {
-      if (process.env.DEBUG === '1') {
-        process.stderr.write(chunk)
-      }
-      body += chunk
-    })
-    process.stdin.on('end', () => resolve(body))
-    process.stdin.on('error', reject)
-    process.on('SIGINT', function onSigint() {
-      if (process.env.DEBUG === '1') {
-        console.error('\nReceived SIGINT, ending input')
-      }
-      process.stdin.emit('end')
-      process.off('SIGINT', onSigint)
-    })
-  })
-}
-
-async function fileExists(path) {
-  try {
-    await fs.access(path)
-    return true
-  } catch {
-    return false
-  }
-}
 
 // =============================================================================
 
