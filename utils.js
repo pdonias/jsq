@@ -58,15 +58,5 @@ module.exports = {
         return text
       }
     }
-
-    try {
-      inputObject = input === undefined || input.trim() === '' ? undefined : JSON.parse(input)
-    } catch {
-      // Support NDJSON
-      inputObject = input
-        .trim()
-        .split('\n')
-        .map(line => JSON.parse(line))
-    }
   },
 }
