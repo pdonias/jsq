@@ -11,7 +11,7 @@ function stripAnsi(str) {
 }
 
 function runJSQ(input, args, options = {}) {
-  const res = spawnSync('node', [BIN, ...args], {
+  const res = spawnSync('node', [BIN, '--no-cache', ...args], {
     input,
     encoding: 'utf-8',
     ...options,

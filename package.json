@@ -24,6 +24,7 @@
     "node": ">=6.4.0"
   },
   "dependencies": {
+    "env-paths": "^3.0.0",
     "yargs": "^17.7.2"
   }
 }
