@@ -120,12 +120,22 @@ async function main({ expression, json: jsonOutput, depth, resolve }) {
   }
 
   if (resolve !== undefined) {
-    const resolveFn = value => parse(childProcess.execSync(resolve.replaceAll('{}', value), { encoding: 'utf8' }))
+    const resolveFn = function () {
+      // Replace:
+      // - {} with first arg
+      // - {i} with i-th arg
+      // Escape with \{i}
+      const cmd = resolve.replace(/(?<!\\){(\d+)?}/g, (_, i) => arguments[i ?? 0] ?? '').replace(/\\({\d*})/g, '$1')
+
+      return parse(childProcess.execSync(cmd, { encoding: 'utf8' }))
+    }
+
     Object.defineProperty(resolveFn, 'cmd', {
       value: resolve,
       writable: false,
       enumerable: false,
     })
+
     context.resolve = resolveFn
   }
 
