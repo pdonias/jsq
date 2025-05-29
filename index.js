@@ -69,9 +69,10 @@ yargs
   .option('input', {
     alias: 'i',
     description: 'Declare extra inputs as --input.users "$(cat users.json)" then use it in the expression as users',
+    default: {},
     coerce: val => {
       if (typeof val === 'string' || Array.isArray(val)) {
-        throw new Error('Use --input.<name> <json> instead of --input <json>')
+        throw new Error('Use --input.<name> <json> instead of --input')
       }
       return val
     },
@@ -79,6 +80,7 @@ yargs
   .option('fn', {
     alias: 'f',
     description: 'Declare functions as --fn.<name> <cmd> then use it in the expression as <name>()',
+    default: {},
     coerce: val => {
       if (typeof val === 'string' || Array.isArray(val)) {
         throw new Error('Use --fn.<name> <cmd> instead of --fn')
@@ -180,16 +182,12 @@ async function main(opts) {
   }
 
   // Support --input.<name> options
-  if (typeof opts.input === 'object') {
-    Object.entries(opts.input).forEach(([name, input]) => {
-      userContext.inputs[name] = parse(input)
-    })
-  }
+  Object.entries(opts.input).forEach(([name, input]) => {
+    userContext.inputs[name] = parse(input)
+  })
 
   // Support --fn.<name> options
-  if (typeof opts.fn === 'object') {
-    Object.assign(userContext.fns, opts.fn)
-  }
+  Object.assign(userContext.fns, opts.fn)
 
   // Support --resolve shorthand option
   if (typeof opts.resolve === 'string') {
