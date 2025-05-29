@@ -42,12 +42,12 @@ $ jsq --input.obj '{ "foo": 1, "bar": 2 }' 'obj.foo'
 1
 ```
 
-jsq also support NDJSON from stdin. Early interrupt an NDJSON input with <kbd>Ctrl</kbd> + <kbd>C</kbd>.
+jsq also supports NDJSON from stdin. Early interrupt an NDJSON input with <kbd>Ctrl</kbd> + <kbd>C</kbd>.
 Use `--no-buffer` on `curl` to force it to write immediately to stdout.
 
 ## Expression
 
-Process the input(s) with a native JavaScript expression. Access the inputs as variables in the global scope. You may pass multiple statements and use any native NodeJS features. The value of the last statement is the output of jsq.
+Process the input(s) with a native JavaScript expression. Access the inputs as variables in the global scope. You may pass multiple statements and use any NodeJS features. The value of the last statement is the output of jsq.
 
 ```bash
 $ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.keys(_).join(", ")'
@@ -57,7 +57,7 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq 'a = _.foo; b = _.bar; a + b'
 3
 ```
 
-If the last statement is an object, wrap it with `({ ... })` so that Node doesn't interpret it as a block.
+If the last statement is an object, wrap it with `({ ... })` so that NodeJS doesn't interpret it as a block.
 You may omit `_` as the first character of the expression (`.foo` is treated as `_.foo`)
 
 ## Output
@@ -69,10 +69,10 @@ jsq outputs the value of the last statement in the expression. If no expression 
 
 ## Functions
 
-Use `--fn.<name> <cmd>` to declare shell-based functions to be used within the expression. The command may contain `{0}`, `{1}`, `{2}`, ... that will be replaced by the function's arguments when you call it in the expression.
+Use `--fn.<name> <cmd>` to declare shell-based functions that will also be accessible from within the expression in the global scope. The command may contain `{0}`, `{1}`, `{2}`, ... that will be replaced by the function's arguments when you call it in the expression.
 
 ```bash
-$ echo '{ "foo": 1, "bar": 2 }' | jsq --fn.fetch 'curl https://api.com/{0}/{1}' 'fetch("user", _.foo)'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq --fn.apiFetch 'curl https://api.com/{0}/{1}' 'apiFetch("user", _.foo)'
 { userid: 1, firstname: 'John', lastname: 'Doe' }
 ```
 
@@ -99,16 +99,16 @@ You may call `console.log` and `console.error` to debug your expression. It won'
 
 ## Cache
 
-By default, jsq remembers inputs and functions across runs. This is convenient if the command you pipe into jsq takes a while to compute. If you need to run mutilple expressions on the same input, you only need to pipe it the first time. Similarly, if you configure some helper functions, you can reuse them in later calls without redeclaring them.
+By default, jsq remembers inputs and functions across runs. This is convenient if the command you pipe into jsq takes a while to return. If you need to run mutilple expressions on the same input, you only need to pipe it the first time. Similarly, if you configure some helper functions, you can reuse them in later calls without redeclaring them.
 
 ```bash
 $ echo '{ "foo": 1, "bar": 2 }' | jsq
 { foo: 1, bar: 2 }
 $ jsq .foo
 1
-$ jsq --fn.fetch 'curl https://api.com/{0}/{1}'
+$ jsq --fn.apiFetch 'curl https://api.com/{0}/{1}'
 { foo: 1, bar: 2 }
-$ jsq 'fetch("user", _.foo)'
+$ jsq 'apiFetch("user", _.foo)'
 { userid: 1, firstname: 'John', lastname: 'Doe' }
 ```
 

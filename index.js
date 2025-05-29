@@ -120,9 +120,10 @@ async function main(opts) {
 
   if (opts.lsCache) {
     const { inputs = {}, fns = {} } = await readCache()
-    console.error('Cache contains:')
+    console.error('Cache:')
     console.error(`- Inputs: ${Object.keys(inputs).join(', ')}`)
     console.error(`- Functions: ${Object.keys(fns).join(', ')}`)
+    console.error('\nRun `jsq <name>` to see the value of a cached input or function')
     console.error('Run `jsq --clear-cache` to forget everything')
     return
   }
