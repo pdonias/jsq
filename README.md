@@ -11,7 +11,7 @@ npm install --global jsq-cli
 ## Usage
 
 ```bash
-$ <command> | jsq <expression> [--json] [--depth <depth>] [--resolve <command>]
+$ <command> | jsq <expression>
 ```
 
 Access properties like `jq`:
@@ -22,17 +22,96 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq .foo
 
 Or use full JavaScript expressions:
 ```bash
-$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.keys(_).map(key => `${key}=${_[key]}`).join("; ")'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.entries(_).map(entry => entry.join("=")).join("; ")'
 foo=1; bar=2
 ```
 
-- The parsed JSON input is available as `_`
-- Your expression is plain JavaScript: it supports multiple statements, variable declaration, if statements, etc.
-- The result is the value of the last evaluated statement. If the last statement is an object, wrap it with `({ ... })` so that Node doesn't interpret it as a block.
-- You can explicitly emit your own output by calling `echo()` in the expression: `jsq 'Object.keys(_).forEach(key => echo(key))'`
-- You can omit `_` as the first character of the expression (`.foo` is treated as `_.foo`)
-- Remembers the last JSON input: if you're working on the same JSON input multiple times, you only need to pipe it the first time
-- Supports NDJSON. Early interrupt input with <kbd>Ctrl</kbd> + <kbd>C</kbd>. Use `--no-buffer` on `curl` to force it to write immediately to stdout.
-- Use `--json` to get a raw JSON output
-- Use `--depth` to configure how deep the result object will be rendered (ignored if `--json` is passed)
-- Use `--resolve` to pass a command that will resolve an ID, a URL, ... Then you can use `resolve(id)` in the expression. `{}` will be replaced by the `id` in your command`
+## Input
+
+An input is JSON data that is passed to jsq and accessible within the expression as a global variable.
+
+An input can be piped into jsq and named with `--as` (default name is `_`):
+```bash
+$ echo '{ "foo": 1, "bar": 2 }' | jsq --as obj 'obj.foo'
+1
+```
+
+Or it can be declared using the `--input.<name>` syntax:
+```bash
+$ jsq --input.obj '{ "foo": 1, "bar": 2 }' 'obj.foo'
+1
+```
+
+jsq also support NDJSON from stdin. Early interrupt an NDJSON input with <kbd>Ctrl</kbd> + <kbd>C</kbd>.
+Use `--no-buffer` on `curl` to force it to write immediately to stdout.
+
+## Expression
+
+Process the input(s) with a native JavaScript expression. Access the inputs as variables in the global scope. You may pass multiple statements and use any native NodeJS features. The value of the last statement is the output of jsq.
+
+```bash
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.keys(_).join(", ")'
+foo, bar
+
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'a = _.foo; b = _.bar; a + b'
+3
+```
+
+If the last statement is an object, wrap it with `({ ... })` so that Node doesn't interpret it as a block.
+You may omit `_` as the first character of the expression (`.foo` is treated as `_.foo`)
+
+## Output
+
+jsq outputs the value of the last statement in the expression. If no expression is passed, it outputs the whole input. By default, jsq will pretty-print the result.
+
+- Use `--depth <n>` if the output is an object to configure how deep the object will be rendered.
+- Use `--json` to output raw JSON instead of pretty-print.
+
+## Functions
+
+Use `--fn.<name> <cmd>` to declare shell-based functions to be used within the expression. The command may contain `{0}`, `{1}`, `{2}`, ... that will be replaced by the function's arguments when you call it in the expression.
+
+```bash
+$ echo '{ "foo": 1, "bar": 2 }' | jsq --fn.fetch 'curl https://api.com/{0}/{1}' 'fetch("user", _.foo)'
+{ userid: 1, firstname: 'John', lastname: 'Doe' }
+```
+
+Use `--resolve <cmd>` or `-r <cmd>` as a shorthand for `--fn.resolve <cmd>`.
+The output of functions is automatically `JSON.parse`d if possible.
+
+## Utils
+
+Some utility functions are also exposed in the global scope.
+
+### `echo`
+
+By default, the output of jsq is the value of the last JavaScript statement in the expression. However, if you want to declare the output explicitly, you can call the function `echo` in the expression. You may call it one or multiple times. If you call it at least once, jsq will ignore the value of the last statement. If you call it multiple times, the values will be printed to stdout separated by newlines.
+
+```bash
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.entries(_).forEach(([key, value]) => echo(`${key}: ${value}`))'
+foo: 1
+bar: 2
+```
+
+### `console.log`/`console.error`
+
+You may call `console.log` and `console.error` to debug your expression. It won't pollute the stdout as both are redirected to stderr
+
+## Cache
+
+By default, jsq remembers inputs and functions across runs. This is convenient if the command you pipe into jsq takes a while to compute. If you need to run mutilple expressions on the same input, you only need to pipe it the first time. Similarly, if you configure some helper functions, you can reuse them in later calls without redeclaring them.
+
+```bash
+$ echo '{ "foo": 1, "bar": 2 }' | jsq
+{ foo: 1, bar: 2 }
+$ jsq .foo
+1
+$ jsq --fn.fetch 'curl https://api.com/{0}/{1}'
+{ foo: 1, bar: 2 }
+$ jsq 'fetch("user", _.foo)'
+{ userid: 1, firstname: 'John', lastname: 'Doe' }
+```
+
+Use `--ls-cache` to see the content of the cache.
+Use `--clear-cache` to delete everything from the cache.
+Use `--no-cache` to ignore cache completely for the current run (no read, no write)
