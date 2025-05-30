@@ -6,7 +6,8 @@ const os = require('os')
 const path = require('path')
 const util = require('util')
 const vm = require('vm')
-const yargs = require('yargs/yargs')(process.argv.slice(2))
+const yargs = require('yargs/yargs')
+const { hideBin } = require('yargs/helpers')
 
 const { fileExists, readStdin, parse, readCache, writeCache, delCache } = require('./utils')
 
@@ -23,7 +24,7 @@ const PRINT_OPTIONS = {
 
 // =============================================================================
 
-yargs
+const argv = yargs(hideBin(process.argv))
   .locale('en')
   .wrap(Math.min(process.stdout.columns || 80, 120))
   .strict()
@@ -110,7 +111,7 @@ yargs
     alias: 'n',
     default: false,
     description: "Keep cached objects and functions but ignore them and don't cache new ones either",
-  })
+  }).argv
 
 // =============================================================================
 
@@ -299,4 +300,4 @@ async function main(opts) {
   }
 }
 
-main(yargs.argv)
+main(argv)
