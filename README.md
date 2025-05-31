@@ -30,7 +30,7 @@ foo=1; bar=2
 
 An input is JSON data that is passed to jsq and accessible within the expression as a global variable.
 
-An input can be piped into jsq and named with `--as` (default name is `_`):
+An input can be piped into jsq and named with `--as` (also available as `_` and `_in`):
 ```bash
 $ echo '{ "foo": 1, "bar": 2 }' | jsq --as obj 'obj.foo'
 1
@@ -44,6 +44,7 @@ $ jsq --input.obj '{ "foo": 1, "bar": 2 }' 'obj.foo'
 
 jsq also supports NDJSON from stdin. Early interrupt an NDJSON input with <kbd>Ctrl</kbd> + <kbd>C</kbd>.
 Use `--no-buffer` on `curl` to force it to write immediately to stdout.
+The NDJSON data is then converted to an array and injected in the global variable in the expression.
 
 ## Expression
 
@@ -76,8 +77,8 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq --fn.apiFetch 'curl https://api.com/{0}/{1
 { userid: 1, firstname: 'John', lastname: 'Doe' }
 ```
 
-Use `--resolve <cmd>` or `-r <cmd>` as a shorthand for `--fn.resolve <cmd>`.
-The output of functions is automatically `JSON.parse`d if possible.
+- Use `--resolve <cmd>` or `-r <cmd>` as a shorthand for `--fn.resolve <cmd>`.
+- The output of functions is automatically `JSON.parse`d if possible.
 
 ## Utils
 
@@ -95,23 +96,29 @@ bar: 2
 
 ### `console.log`/`console.error`
 
-You may call `console.log` and `console.error` to debug your expression. It won't pollute the stdout as both are redirected to stderr
+You may call `console.log` and `console.error` to debug your expression. It won't pollute the stdout as both are redirected to stderr.
 
 ## Cache
 
-By default, jsq remembers inputs and functions across runs. This is convenient if the command you pipe into jsq takes a while to return. If you need to run mutilple expressions on the same input, you only need to pipe it the first time. Similarly, if you configure some helper functions, you can reuse them in later calls without redeclaring them.
+By default, jsq remembers:
+- inputs: this is convenient if the command you pipe into jsq takes a while to return. If you need to run mutilple expressions on the same input, you only need to pipe it the first time.
+- outputs: access the result of the previous run with `_out` or save the result of a run as a named global variable with `--save-as <name>` to reuse the result of a run in the next ones.
+- functions: similarly, if you configure some helper [functions](#functions), you can reuse them in later calls without redeclaring them.
 
 ```bash
 $ echo '{ "foo": 1, "bar": 2 }' | jsq
 { foo: 1, bar: 2 }
+
 $ jsq .foo
 1
-$ jsq --fn.apiFetch 'curl https://api.com/{0}/{1}'
-{ foo: 1, bar: 2 }
-$ jsq 'apiFetch("user", _.foo)'
+
+$ jsq --fn.apiFetch 'curl https://api.com/{0}/{1}' 'apiFetch("user", _out)'
 { userid: 1, firstname: 'John', lastname: 'Doe' }
+
+$ jsq 'apiFetch("user", _.bar)'
+{ userid: 2, firstname: 'Jane', lastname: 'Doe' }
 ```
 
-Use `--ls-cache` to see the content of the cache.
-Use `--clear-cache` to delete everything from the cache.
-Use `--no-cache` to ignore cache completely for the current run (no read, no write)
+- Use `--ls-cache` to see the content of the cache.
+- Use `--clear-cache` to delete everything from the cache.
+- Use `--no-cache` to ignore cache completely for the current run (no read, no write)

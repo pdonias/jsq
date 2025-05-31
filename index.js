@@ -64,35 +64,35 @@ const argv = yargs(hideBin(process.argv))
     type: 'string',
     alias: 'a',
     description:
-      'Name the global variable that will hold the piped data\n`<cmd> | jsq --as foo` is equivalent to `jsq --input.foo "$(<cmd>)"`',
+      'Name the global variable that will hold the piped data\n`<cmd> | jsq --as <name>` is equivalent to `jsq --input.<name> "$(<cmd>)"`',
   })
   .option('save-as', {
     type: 'string',
     alias: 'S',
-    description: 'Name the global variable that will hold the result of the last run, if any.',
+    description: 'Name the global variable that will hold the result of this run in the next runs',
   })
   .option('input', {
-    alias: 'i',
-    description: 'Declare extra inputs as --input.users "$(cat users.json)" then use it in the expression as users',
+    alias: 'in',
+    description: 'Declare extra inputs as --input.<name> <json> then use them in the expression as <name>',
     default: {},
     coerce: input => {
       if (
         typeof input !== 'object' ||
         Array.isArray(input) ||
-        Object.values(input).some(value => typeof value !== 'string')
+        Object.values(input).some(value => !['string', 'number'].includes(typeof value))
       ) {
         throw new Error('Use --input.<name> <json>')
       }
-      return input
+      return Object.fromEntries(Object.entries(input).map(entry => [entry[0], String(entry[1])]))
     },
   })
-  .option('fn', {
-    alias: 'f',
-    description: 'Declare functions as --fn.<name> <cmd> then use it in the expression as <name>()',
+  .option('function', {
+    alias: 'fn',
+    description: "Declare functions as --fn.<name> '<cmd>' then use them in the expression as <name>()",
     default: {},
     coerce: fn => {
       if (typeof fn !== 'object' || Array.isArray(fn) || Object.values(fn).some(value => typeof value !== 'string')) {
-        throw new Error('Use --fn.<name> <cmd>')
+        throw new Error("Use --fn.<name> '<cmd>'")
       }
       return fn
     },
@@ -273,7 +273,7 @@ async function main(opts) {
   debug(userContext)
   debug('\nContext:')
   debug(context)
-  debug('\nResult:')
+  debug('\n')
 
   const script = new vm.Script(expression)
   const result = script.runInContext(context)
@@ -300,6 +300,7 @@ async function main(opts) {
         userContext.values[opts.saveAs] = result
       }
     } catch (err) {
+      debug('result will not be cached because it is not stringifiable:', err.message)
       jsonErr = err
     }
 
@@ -310,6 +311,7 @@ async function main(opts) {
 
       // If the result is undefined, make the JSON output empty
       if (json !== undefined) {
+        debug('JSON result:')
         console.log(json)
       }
 
@@ -318,16 +320,19 @@ async function main(opts) {
 
     // Inspect resolver: show the shell command
     if (typeof result === 'function' && result.cmd !== undefined) {
+      debug('Function result:')
       console.log(result.cmd)
       return
     }
 
     // Don't show quotes if result is a string
     if (typeof result === 'string') {
+      debug('String result:')
       console.log(result)
       return
     }
 
+    debug('Result:')
     console.log(util.inspect(result, PRINT_OPTIONS))
   }
 }
