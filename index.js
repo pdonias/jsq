@@ -191,6 +191,9 @@ async function main(opts) {
   // Main user input
   if (hasStdin) {
     userContext.in = parse(await readStdin())
+    if (opts.as !== undefined) {
+      userContext.values[opts.as] = userContext.in
+    }
   }
 
   // Support --input.<name> options
@@ -229,14 +232,9 @@ async function main(opts) {
     output(arg)
   })
 
-  // Declare all the main input aliases: _, _in and user-defined name
+  // Declare main input and last run's output
   addToContext('_', userContext.in)
   addToContext('_in', userContext.in)
-  if (![undefined, '_', '_in'].includes(opts.as)) {
-    addToContext(opts.as, userContext.in)
-  }
-
-  // Declare last result as _out
   addToContext('_out', userContext.out)
 
   // Declare all saved values
