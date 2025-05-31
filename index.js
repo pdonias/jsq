@@ -9,7 +9,7 @@ const vm = require('vm')
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
 
-const { fileExists, readStdin, parse, readCache, writeCache, delCache } = require('./utils')
+const { debug, fileExists, readStdin, parse, readCache, writeCache, delCache } = require('./utils')
 
 const DEFAULT_NAME = '_'
 
@@ -65,28 +65,36 @@ const argv = yargs(hideBin(process.argv))
     alias: 'a',
     description:
       'Name the global variable that will hold the piped data\n`<cmd> | jsq --as foo` is equivalent to `jsq --input.foo "$(<cmd>)"`',
-    default: DEFAULT_NAME,
+  })
+  .option('save-as', {
+    type: 'string',
+    alias: 'S',
+    description: 'Name the global variable that will hold the result of the last run, if any.',
   })
   .option('input', {
     alias: 'i',
     description: 'Declare extra inputs as --input.users "$(cat users.json)" then use it in the expression as users',
     default: {},
-    coerce: val => {
-      if (typeof val === 'string' || Array.isArray(val)) {
-        throw new Error('Use --input.<name> <json> instead of --input')
+    coerce: input => {
+      if (
+        typeof input !== 'object' ||
+        Array.isArray(input) ||
+        Object.values(input).some(value => typeof value !== 'string')
+      ) {
+        throw new Error('Use --input.<name> <json>')
       }
-      return val
+      return input
     },
   })
   .option('fn', {
     alias: 'f',
     description: 'Declare functions as --fn.<name> <cmd> then use it in the expression as <name>()',
     default: {},
-    coerce: val => {
-      if (typeof val === 'string' || Array.isArray(val)) {
-        throw new Error('Use --fn.<name> <cmd> instead of --fn')
+    coerce: fn => {
+      if (typeof fn !== 'object' || Array.isArray(fn) || Object.values(fn).some(value => typeof value !== 'string')) {
+        throw new Error('Use --fn.<name> <cmd>')
       }
-      return val
+      return fn
     },
   })
   .option('resolve', {
@@ -116,15 +124,13 @@ const argv = yargs(hideBin(process.argv))
 // =============================================================================
 
 async function main(opts) {
-  if (process.env.DEBUG === '1') {
-    console.error('Options:')
-    console.error(opts)
-  }
+  debug('Options:')
+  debug(opts)
 
   if (opts.lsCache) {
-    const { inputs = {}, fns = {} } = await readCache()
+    const { values = {}, fns = {} } = await readCache()
     console.error('Cache:')
-    console.error(`- Inputs: ${Object.keys(inputs).join(', ')}`)
+    console.error(`- Values: ${Object.keys(values).join(', ')}`)
     console.error(`- Functions: ${Object.keys(fns).join(', ')}`)
     console.error('\nRun `jsq <name>` to see the value of a cached input or function')
     console.error('Run `jsq --clear-cache` to forget everything')
@@ -141,9 +147,8 @@ async function main(opts) {
   const hasStdin = !process.stdin.isTTY
 
   if (hasStdin && typeof opts.input === 'string') {
-    console.error(
-      'You cannot pipe data and use --input at the same time. They are equivalent, choose one.\nIf you meant to pass extra inputs, use the named input syntax --input.<name> <json>.'
-    )
+    console.error('You cannot pipe data and use --input at the same time. They are equivalent, choose one.')
+    console.error('If you meant to pass extra inputs, use the named input syntax --input.<name> <json>.')
     process.exit(1)
   }
 
@@ -160,31 +165,37 @@ async function main(opts) {
 
   // Support expression "."
   if (expression === '.') {
-    expression = opts.as
+    expression = opts.as ?? '_'
   }
 
   // Support expressions "" and ".prop"
   if (expression === '' || expression.startsWith('.')) {
-    expression = opts.as + expression
+    expression = (opts.as ?? '_') + expression
   }
 
-  // Get previous inputs and functions
+  // Get previously saved values and functions
   const userContext = opts.noCache ? {} : await readCache()
-  if (userContext.inputs === undefined) {
-    userContext.inputs = {}
+  if (!('values' in userContext)) {
+    userContext.values = {}
   }
-  if (userContext.fns === undefined) {
+  if (!('fns' in userContext)) {
     userContext.fns = {}
   }
+  if (!('in' in userContext)) {
+    userContext.in = undefined
+  }
+  if (!('out' in userContext)) {
+    userContext.out = undefined
+  }
 
-  // Read input from stdin by default
+  // Main user input
   if (hasStdin) {
-    userContext.inputs[opts.as] = parse(await readStdin())
+    userContext.in = parse(await readStdin())
   }
 
   // Support --input.<name> options
   Object.entries(opts.input).forEach(([name, input]) => {
-    userContext.inputs[name] = parse(input)
+    userContext.values[name] = parse(input)
   })
 
   // Support --fn.<name> options
@@ -218,8 +229,18 @@ async function main(opts) {
     output(arg)
   })
 
-  // Declare all inputs
-  Object.entries(userContext.inputs).forEach(([name, obj]) => {
+  // Declare all the main input aliases: _, _in and user-defined name
+  addToContext('_', userContext.in)
+  addToContext('_in', userContext.in)
+  if (![undefined, '_', '_in'].includes(opts.as)) {
+    addToContext(opts.as, userContext.in)
+  }
+
+  // Declare last result as _out
+  addToContext('_out', userContext.out)
+
+  // Declare all saved values
+  Object.entries(userContext.values).forEach(([name, obj]) => {
     addToContext(name, obj)
   })
 
@@ -244,26 +265,15 @@ async function main(opts) {
     addToContext(name, fn)
   })
 
-  if (context[opts.as] === undefined) {
-    addToContext(opts.as, undefined)
-  }
-
-  // If we managed to assign all the inputs and functions, then save everything to cache
-  if (!opts.noCache) {
-    await writeCache(userContext)
-  }
-
   // Evaluate ------------------------------------------------------------------
 
-  if (process.env.DEBUG === '1') {
-    console.error('\nExpression: ')
-    console.error(expression)
-    console.error('\nUser context:')
-    console.error(userContext)
-    console.error('\nContext:')
-    console.error(context)
-    console.error('\nResult:')
-  }
+  debug('\nExpression: ')
+  debug(expression)
+  debug('\nUser context:')
+  debug(userContext)
+  debug('\nContext:')
+  debug(context)
+  debug('\nResult:')
 
   const script = new vm.Script(expression)
   const result = script.runInContext(context)
@@ -275,16 +285,38 @@ async function main(opts) {
     output(result)
   }
 
+  // If the whole run was successful, then save user context to cache
+  if (!opts.noCache) {
+    await writeCache(userContext)
+  }
+
   function output(result) {
-    if (opts.json) {
-      if (result !== undefined) {
-        console.log(JSON.stringify(result))
+    let json, jsonErr
+    try {
+      json = result && JSON.stringify(result, null, 2)
+      // If the result is stringifiable, add it to the context so that it can be cached
+      userContext.out = result
+      if (opts.saveAs !== undefined) {
+        userContext.values[opts.saveAs] = result
       }
+    } catch (err) {
+      jsonErr = err
+    }
+
+    if (opts.json) {
+      if (jsonErr !== undefined) {
+        throw jsonErr
+      }
+
       // If the result is undefined, make the JSON output empty
+      if (json !== undefined) {
+        console.log(json)
+      }
+
       return
     }
 
-    // Inspect resolver
+    // Inspect resolver: show the shell command
     if (typeof result === 'function' && result.cmd !== undefined) {
       console.log(result.cmd)
       return

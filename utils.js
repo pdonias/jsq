@@ -7,13 +7,22 @@ const paths = envPaths('jsq', { suffix: '' })
 const cacheDir = paths.cache
 const cacheFile = path.join(cacheDir, 'cache.json')
 
-module.exports = { readStdin, fileExists, parse, readCache, writeCache, delCache }
+module.exports = { debug, readStdin, fileExists, parse, readCache, writeCache, delCache }
+
+function debug(...args) {
+  if (process.env.DEBUG === '1') {
+    console.error(...args)
+  }
+}
 
 function readStdin() {
+  if (process.stdin.isTTY) {
+    debug('\nNothing to read from stdin')
+    return
+  }
+
   return new Promise((resolve, reject) => {
-    if (process.env.DEBUG === '1') {
-      console.error('\nReading stdin...')
-    }
+    debug('\nReading stdin...')
 
     let body = ''
     process.stdin.setEncoding('utf8')
@@ -24,16 +33,12 @@ function readStdin() {
       body += chunk
     })
     process.stdin.on('end', () => {
-      if (process.env.DEBUG === '1') {
-        console.error('\n...Finished reading stdin')
-      }
+      debug('\n...Finished reading stdin')
       resolve(body)
     })
     process.stdin.on('error', reject)
     process.on('SIGINT', function onSigint() {
-      if (process.env.DEBUG === '1') {
-        console.error('\nReceived SIGINT, ending input')
-      }
+      debug('\nReceived SIGINT, ending input')
       process.stdin.emit('end')
       process.off('SIGINT', onSigint)
     })
