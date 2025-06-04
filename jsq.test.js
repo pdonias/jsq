@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict')
 const path = require('node:path')
-const { describe, test } = require('node:test')
+const { describe, test, beforeEach } = require('node:test')
 const { spawnSync } = require('node:child_process')
 
 const BIN = path.resolve('./index.js')
@@ -17,10 +17,6 @@ function runJSQ(input, args = [], options = {}) {
     ...options,
     env: { ...process.env, CACHE: 'cache-test.json', STDIN: input ? '1' : '0', ...options.env },
   })
-
-  if (res.error) {
-    throw res.error
-  }
 
   return { ...res, result: stripAnsi(res.stdout.trim()) }
 }
@@ -81,9 +77,35 @@ describe('--depth', () => {
 })
 
 describe('cache', () => {
+  beforeEach(() => runJSQ('', ['--clear-cache']))
+
   test('remembers the last input', () => {
-    runJSQ('"foo"')
+    runJSQ('"bar"')
     const { result } = runJSQ()
-    assert.equal(result, 'foo')
+    assert.equal(result, 'bar')
+  })
+
+  test('remembers named input', () => {
+    runJSQ('"bar"', ['--as', 'foo'])
+    const { result } = runJSQ('', ['foo'])
+    assert.equal(result, 'bar')
+  })
+
+  test('remembers extra inputs', () => {
+    runJSQ('', ['--in.foo', '"bar"'])
+    const { result } = runJSQ('', ['foo'])
+    assert.equal(result, 'bar')
+  })
+
+  test('remembers functions', () => {
+    runJSQ('', ['--fn.myFn', 'mycmd'])
+    const { result } = runJSQ('', ['myFn'])
+    assert.equal(result, 'mycmd')
+  })
+
+  test('prints out content of cache', () => {
+    runJSQ('', ['--fn.myFn', 'mycmd', '--in.foo', '1', '--in.bar', '2'])
+    const { stderr } = runJSQ('', ['--ls-cache'])
+    assert.match(stderr, /^Cache:\n- Values: foo, bar\n- Functions: myFn/)
   })
 })
