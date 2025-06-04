@@ -242,6 +242,10 @@ async function main(opts) {
     output(arg)
   })
 
+  addToContext('exit', exitCode => {
+    process.exit(exitCode)
+  })
+
   // Declare main input and last run's output
   addToContext('_', userContext.in)
   addToContext('_in', userContext.in)

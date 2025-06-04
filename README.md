@@ -98,6 +98,10 @@ bar: 2
 
 You may call `console.log` and `console.error` to debug your expression. It won't pollute the stdout as both are redirected to stderr.
 
+### `exit`
+
+You may call `exit` explicitly to end the jsq process early. Pass the exit code as an argument. This can be useful to conditionally return early.
+
 ### `lodash`
 
 All [`lodash`](https://lodash.com/docs) functions are available in the global context, except if one or more of your named inputs or functions override them.
