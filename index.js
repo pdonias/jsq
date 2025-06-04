@@ -312,7 +312,7 @@ async function main(opts) {
   function output(result) {
     let json, jsonErr
     try {
-      json = result && JSON.stringify(result, null, 2)
+      json = result && JSON.stringify(result)
       // If the result is stringifiable, add it to the context so that it can be cached
       userContext.out = result
       if (opts.saveAs !== undefined) {
