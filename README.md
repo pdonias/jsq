@@ -98,6 +98,15 @@ bar: 2
 
 You may call `console.log` and `console.error` to debug your expression. It won't pollute the stdout as both are redirected to stderr.
 
+### `lodash`
+
+All [`lodash`](https://lodash.com/docs) functions are available in the global context, except if one or more of your named inputs or functions override them.
+
+```js
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'invert(_)'
+{ '1': 'foo', '2': 'bar' }
+```
+
 ## Cache
 
 By default, jsq remembers:

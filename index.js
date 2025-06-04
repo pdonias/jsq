@@ -2,6 +2,7 @@
 
 const childProcess = require('child_process')
 const fs = require('fs').promises
+const lodash = require('lodash')
 const os = require('os')
 const path = require('path')
 const util = require('util')
@@ -211,11 +212,20 @@ async function main(opts) {
 
   // Build script context ------------------------------------------------------
 
-  const context = vm.createContext()
+  const context = vm.createContext({ __proto__: null })
 
-  const addToContext = (key, value) => {
+  const addToContext = (key, value, { override } = {}) => {
+    // override:
+    // - undefined: raise an error
+    // - true: override existing property
+    // - false: ignore if it already exists
     if (key in context) {
-      throw new Error(`${key} cannot be added to the context because it already exists`)
+      if (override === undefined) {
+        throw new Error(`${key} cannot be added to the context because it already exists`)
+      }
+      if (!override) {
+        return
+      }
     }
     context[key] = value
   }
@@ -261,6 +271,13 @@ async function main(opts) {
     })
 
     addToContext(name, fn)
+  })
+
+  // Add all lodash's helper functions without overriding previous properties
+  Object.keys(lodash).forEach(name => {
+    if (name !== '_' && typeof lodash[name] === 'function') {
+      addToContext(name, lodash[name], { override: false })
+    }
   })
 
   // Evaluate ------------------------------------------------------------------
