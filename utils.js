@@ -5,9 +5,11 @@ const path = require('path')
 const paths = envPaths('jsq', { suffix: '' })
 
 const cacheDir = paths.cache
-const cacheFile = path.join(cacheDir, 'cache.json')
+const cacheFile = path.join(cacheDir, process.env.CACHE || 'cache.json')
 
-module.exports = { debug, readStdin, fileExists, parse, readCache, writeCache, delCache }
+const hasStdin = process.env.STDIN === undefined ? !process.stdin.isTTY : process.env.STDIN === '1'
+
+module.exports = { debug, readStdin, fileExists, parse, readCache, writeCache, delCache, hasStdin }
 
 function debug(...args) {
   if (process.env.DEBUG === '1') {
@@ -16,7 +18,7 @@ function debug(...args) {
 }
 
 function readStdin() {
-  if (process.stdin.isTTY) {
+  if (!hasStdin) {
     debug('\nNothing to read from stdin')
     return
   }

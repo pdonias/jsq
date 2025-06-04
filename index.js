@@ -10,7 +10,7 @@ const vm = require('vm')
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
 
-const { debug, fileExists, readStdin, parse, readCache, writeCache, delCache } = require('./utils')
+const { debug, fileExists, readStdin, parse, readCache, writeCache, delCache, hasStdin } = require('./utils')
 
 const DEFAULT_NAME = '_'
 
@@ -145,8 +145,6 @@ async function main(opts) {
   }
 
   // Inputs and options --------------------------------------------------------
-  const hasStdin = !process.stdin.isTTY
-
   if (hasStdin && typeof opts.input === 'string') {
     console.error('You cannot pipe data and use --input at the same time. They are equivalent, choose one.')
     console.error('If you meant to pass extra inputs, use the named input syntax --input.<name> <json>.')
@@ -290,8 +288,6 @@ async function main(opts) {
   debug(expression)
   debug('\nUser context:')
   debug(userContext)
-  debug('\nContext:')
-  debug(context)
   debug('\n')
 
   const script = new vm.Script(expression)
