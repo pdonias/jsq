@@ -145,9 +145,22 @@ async function main(opts) {
   }
 
   // Inputs and options --------------------------------------------------------
-  if (hasStdin && typeof opts.input === 'string') {
-    console.error('You cannot pipe data and use --input at the same time. They are equivalent, choose one.')
-    console.error('If you meant to pass extra inputs, use the named input syntax --input.<name> <json>.')
+
+  if (opts.as !== undefined && !hasStdin) {
+    console.error('--as is used to name the stdin input but you did not pipe anything.')
+    process.exit(1)
+  }
+
+  const inputNames = Object.keys(opts.input)
+  const fnNames = Object.keys(opts.fn)
+  if (opts.as !== undefined) {
+    inputNames.push(opts.as)
+  }
+  const varNames = [...inputNames, ...fnNames]
+  if (varNames.length > new Set(varNames).size) {
+    console.error('There are some conflicts in the input names and function names.')
+    console.error('Inputs:', inputNames.join(', '))
+    console.error('Functions:', fnNames.join(', '))
     process.exit(1)
   }
 
@@ -192,20 +205,26 @@ async function main(opts) {
     userContext.in = parse(await readStdin())
     if (opts.as !== undefined) {
       userContext.values[opts.as] = userContext.in
+      delete userContext.fns[opts.as] // avoid conflicts with old cache
     }
   }
 
   // Support --input.<name> options
   Object.entries(opts.input).forEach(([name, input]) => {
     userContext.values[name] = parse(input)
+    delete userContext.fns[name] // avoid conflicts with old cache
   })
 
   // Support --fn.<name> options
-  Object.assign(userContext.fns, opts.fn)
+  Object.entries(opts.fn).forEach(([name, fn]) => {
+    userContext.fns[name] = fn
+    delete userContext.values[name] // avoid conflicts with old cache
+  })
 
   // Support --resolve shorthand option
   if (typeof opts.resolve === 'string') {
     userContext.fns.resolve = opts.resolve
+    delete userContext.values.resolve // avoid conflicts with old cache
   }
 
   // Build script context ------------------------------------------------------
