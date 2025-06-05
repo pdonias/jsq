@@ -4,6 +4,7 @@ const { describe, test, beforeEach } = require('node:test')
 const { spawnSync } = require('node:child_process')
 
 const BIN = path.resolve('./index.js')
+const FOOBAR = '{ "foo": 1, "bar": 2 }'
 
 function stripAnsi(str) {
   // Regex to match ANSI escape codes
@@ -23,33 +24,33 @@ function runJSQ(input, args = [], options = {}) {
 
 describe('access properties', () => {
   test('access properties with dot notation', () => {
-    const { result } = runJSQ('{ "foo": 123, "bar": 456 }', ['.foo'])
-    assert.equal(result, '123')
+    const { result } = runJSQ(FOOBAR, ['.foo'])
+    assert.equal(result, '1')
   })
 })
 
 describe('JS expressions', () => {
   test('full JS expressions', () => {
-    const { result } = runJSQ('{ "a": 1, "b": 2 }', ['Object.keys(_).map(k => k + "=" + _[k]).join("; ")'])
-    assert.equal(result, 'a=1; b=2')
+    const { result } = runJSQ(FOOBAR, ['Object.keys(_).map(k => k + "=" + _[k]).join("; ")'])
+    assert.equal(result, 'foo=1; bar=2')
   })
 })
 
 describe('multi-statement', () => {
   test('outputs the final statement', () => {
-    const { result } = runJSQ('{ "y": 100 }', ['let z = _.y + 2; z * 2'])
-    assert.equal(result, '204')
+    const { result } = runJSQ(FOOBAR, ['let z = _.foo + 2; z * _.bar'])
+    assert.equal(result, '6')
   })
 })
 
 describe('echo()', () => {
   test('outputs the argument', () => {
-    const { result } = runJSQ('{ "a": 1, "b": 2 }', ['Object.keys(_).forEach(k => echo(k))'])
-    assert.equal(result, 'a\nb')
+    const { result } = runJSQ(FOOBAR, ['Object.keys(_).forEach(k => echo(k))'])
+    assert.equal(result, 'foo\nbar')
   })
 
   test('ignores the final statement', () => {
-    const { result } = runJSQ('{ "a": 1 }', ['echo("intermediate"); "final result"'])
+    const { result } = runJSQ('', ['echo("intermediate"); "final result"'])
     assert.equal(result, 'intermediate')
   })
 })
@@ -61,10 +62,27 @@ describe('exit()', () => {
   })
 })
 
+describe('lodash', () => {
+  test('functions are declared in global scope', () => {
+    const { result } = runJSQ(FOOBAR, ['invert(_)'])
+    assert.equal(result, "{ '1': 'foo', '2': 'bar' }")
+  })
+
+  test('user object takes precedence', () => {
+    const { result } = runJSQ(FOOBAR, ['--as', 'invert', 'invert'])
+    assert.equal(result, '{ foo: 1, bar: 2 }')
+  })
+
+  test('user function takes precedence', () => {
+    const { result } = runJSQ('', ['--fn.invert', 'cmd', 'invert'])
+    assert.equal(result, 'cmd')
+  })
+})
+
 describe('--json', () => {
   test('outputs raw JSON', () => {
-    const { result } = runJSQ('{ "arr": [1, 2] }', ['.arr', '--json'])
-    assert.equal(result, '[1,2]')
+    const { result } = runJSQ(FOOBAR, ['.', '--json'])
+    assert.equal(result, '{"foo":1,"bar":2}')
   })
 })
 
