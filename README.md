@@ -30,7 +30,7 @@ foo=1; bar=2
 
 An input is JSON data that is passed to jsq and accessible within the expression as a global variable.
 
-An input can be piped into jsq and named with `--as` (also available as `_` and `_in`):
+An input can be piped into jsq and named with `--as` (also available as `_`):
 ```bash
 $ echo '{ "foo": 1, "bar": 2 }' | jsq --as obj 'obj.foo'
 1
@@ -115,7 +115,7 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq 'invert(_)'
 
 By default, jsq remembers:
 - inputs: this is convenient if the command you pipe into jsq takes a while to return. If you need to run mutilple expressions on the same input, you only need to pipe it the first time.
-- outputs: access the result of the previous run with `_out` or save the result of a run as a named global variable with `--save-as <name>` to reuse the result of a run in the next ones.
+- outputs: access the result of the previous run with `_ans` or save the result of a run as a named global variable with `--save-as <name>` to reuse the result of a run in the next ones.
 - functions: similarly, if you configure some helper [functions](#functions), you can reuse them in later calls without redeclaring them.
 
 ```bash
@@ -125,7 +125,7 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq
 $ jsq .foo
 1
 
-$ jsq --fn.apiFetch 'curl https://api.com/{0}/{1}' 'apiFetch("user", _out)'
+$ jsq --fn.apiFetch 'curl https://api.com/{0}/{1}' 'apiFetch("user", _ans)'
 { userid: 1, firstname: 'John', lastname: 'Doe' }
 
 $ jsq 'apiFetch("user", _.bar)'

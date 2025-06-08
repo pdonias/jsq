@@ -265,8 +265,7 @@ async function main(opts) {
 
   // Declare main input and last run's output
   addToContext('_', userContext.in)
-  addToContext('_in', userContext.in)
-  addToContext('_out', userContext.out)
+  addToContext('_ans', userContext.out)
 
   // Declare all saved values
   Object.entries(userContext.values).forEach(([name, obj]) => {
