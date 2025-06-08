@@ -330,7 +330,7 @@ async function main(opts) {
   }
 
   function output(result) {
-    let json, jsonErr
+    let json
     try {
       json = result && JSON.stringify(result)
       // If the result is stringifiable, add it to the context so that it can be cached
@@ -339,21 +339,27 @@ async function main(opts) {
         userContext.values[opts.saveAs] = result
       }
     } catch (err) {
+      if (!(err instanceof TypeError)) {
+        throw err
+      }
+
+      if (opts.json || opts.saveAs) {
+        console.error('--json and --save-as require output to be stringifiable')
+        console.error(err.message)
+        process.exit(1)
+      }
+
       debug('result will not be cached because it is not stringifiable:', err.message)
-      jsonErr = err
     }
 
     if (opts.json) {
-      if (jsonErr !== undefined) {
-        throw jsonErr
-      }
-
       // If the result is undefined, make the JSON output empty
-      if (json !== undefined) {
-        debug('JSON result:')
-        console.log(json)
+      if (json === undefined) {
+        return
       }
 
+      debug('JSON result:')
+      console.log(json)
       return
     }
 
