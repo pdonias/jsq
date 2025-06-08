@@ -119,16 +119,24 @@ By default, jsq remembers:
 - functions: similarly, if you configure some helper [functions](#functions), you can reuse them in later calls without redeclaring them.
 
 ```bash
+# Pipe the input once
 $ echo '{ "foo": 1, "bar": 2 }' | jsq
 { foo: 1, bar: 2 }
 
+# and jsq remembers it on the following runs
 $ jsq .foo
 1
 
+# Declare functions with --fn
 $ jsq --fn.apiFetch 'curl https://api.com/{0}/{1}' 'apiFetch("user", _ans)'
 { userid: 1, firstname: 'John', lastname: 'Doe' }
 
+# and jsq remembers them too
 $ jsq 'apiFetch("user", _.bar)'
+{ userid: 2, firstname: 'Jane', lastname: 'Doe' }
+
+# jsq also remembers the last result as _ans, give it a proper name with --save-as
+$ jsq _ans --save-as jane
 { userid: 2, firstname: 'Jane', lastname: 'Doe' }
 ```
 
