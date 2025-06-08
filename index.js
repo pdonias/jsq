@@ -146,8 +146,14 @@ async function main(opts) {
 
   // Inputs and options --------------------------------------------------------
 
+  // Validate options
   if (opts.as !== undefined && !hasStdin) {
     console.error('--as is used to name the stdin input but you did not pipe anything.')
+    process.exit(1)
+  }
+
+  if (opts.saveAs !== undefined && opts.noCache) {
+    console.error('--save-as cannot be used when cache is disabled with --no-cache')
     process.exit(1)
   }
 
