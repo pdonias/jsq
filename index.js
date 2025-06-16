@@ -332,7 +332,7 @@ async function main(opts) {
   function output(result) {
     let json
     try {
-      json = result && JSON.stringify(result)
+      json = result !== undefined ? JSON.stringify(result) : undefined
       // If the result is stringifiable, add it to the context so that it can be cached
       userContext.out = result
       if (opts.saveAs !== undefined) {
@@ -353,12 +353,12 @@ async function main(opts) {
     }
 
     if (opts.json) {
+      debug('JSON result:')
       // If the result is undefined, make the JSON output empty
       if (json === undefined) {
         return
       }
 
-      debug('JSON result:')
       console.log(json)
       return
     }
