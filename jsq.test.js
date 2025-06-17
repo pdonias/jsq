@@ -124,6 +124,6 @@ describe('cache', () => {
   test('prints out content of cache', () => {
     runJSQ('', ['--fn.myFn', 'mycmd', '--in.foo', '1', '--in.bar', '2'])
     const { stderr } = runJSQ('', ['--ls-cache'])
-    assert.match(stderr, /^Cache:\n- Values: foo, bar\n- Functions: myFn/)
+    assert.match(stderr, /^Cache \(.*\):\n- Values: foo, bar\n- Functions: myFn/)
   })
 })

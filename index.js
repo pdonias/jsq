@@ -10,7 +10,7 @@ const vm = require('vm')
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
 
-const { debug, fileExists, readStdin, parse, readCache, writeCache, delCache, hasStdin } = require('./utils')
+const { debug, fileExists, readStdin, parse, cacheFile, readCache, writeCache, delCache, hasStdin } = require('./utils')
 
 const DEFAULT_NAME = '_'
 
@@ -130,7 +130,7 @@ async function main(opts) {
 
   if (opts.lsCache) {
     const { values = {}, fns = {} } = await readCache()
-    console.error('Cache:')
+    console.error(`Cache (${cacheFile}):`)
     console.error(`- Values: ${Object.keys(values).join(', ')}`)
     console.error(`- Functions: ${Object.keys(fns).join(', ')}`)
     console.error('\nRun `jsq <name>` to see the value of a cached input or function')
