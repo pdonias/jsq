@@ -1,7 +1,7 @@
 {
   "name": "jsq-cli",
   "description": "A command-line JSON processor with JavaScript syntax",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "author": "Pierre Donias <pierre.donias@gmail.com>",
   "license": "MIT",
   "repository": {
