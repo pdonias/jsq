@@ -70,7 +70,7 @@ jsq outputs the value of the last statement in the expression. If no expression 
 
 ## Functions
 
-Use `--fn.<name> <cmd>` to declare shell-based functions that will also be accessible from within the expression in the global scope. The command may contain `{0}`, `{1}`, `{2}`, ... that will be replaced by the function's arguments when you call it in the expression.
+Use `--fn.<name> <cmd>` to declare shell-based functions that will also be accessible from within the expression in the global scope. The command may contain `{0}`, `{1}`, `{2}`, ... that will be replaced by the function's arguments when you call it in the expression. `{}` is an alias for `{0}`.
 
 ```bash
 $ echo '{ "foo": 1, "bar": 2 }' | jsq --fn.apiFetch 'curl https://api.com/{0}/{1}' 'apiFetch("user", _.foo)'
@@ -143,3 +143,26 @@ $ jsq _ans --save-as jane
 - Use `--ls-cache` to see the content of the cache.
 - Use `--clear-cache` to delete everything from the cache.
 - Use `--no-cache` to ignore cache completely for the current run (no read, no write)
+
+## Examples
+
+*Outputs are omitted for clarity*
+
+1. Digging through a JSON
+
+```bash
+$ curl https://api.com/users | jsq # Pipe an input
+$ jsq 'find(_, { firstname: "John", lastname: "Doe" })' # Find an item with Lodash's find
+$ jsq _ans | jsq # To work on that object, make it the new main input
+$ jsq .friends --save-as friends # Save John's friends into a variable
+$ jsq 'friends.forEach(f => { if (f.age > _.age) { echo(f.firstname) } })' # Print friends that are older than John
+```
+
+2. Using function and variables
+
+```bash
+$ curl https://api.com/ids | jsq --as userIds # Pipe an input and name it
+$ jsq --resolve 'curl https://api.com/user/{}' # Tell jsq how to resolve a user ID
+$ jsq --fn.read 'cat {}' # Tell jsq how to resolve a filename
+$ jsq 'userIds.map(resolve).map(user => read(user.tokenFile)).join("\n")' # Use functions and variables
+```
