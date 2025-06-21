@@ -4,7 +4,8 @@ const { describe, test, beforeEach } = require('node:test')
 const { spawnSync } = require('node:child_process')
 
 const BIN = path.resolve('./index.js')
-const FOOBAR = '{ "foo": 1, "bar": 2 }'
+const FOOBAR = '{"foo":1,"bar":2}'
+const FOOBAR5 = '{ foo: 1, bar: 2 }'
 
 function stripAnsi(str) {
   // Regex to match ANSI escape codes
@@ -43,46 +44,86 @@ describe('multi-statement', () => {
   })
 })
 
-describe('echo()', () => {
-  test('outputs the argument', () => {
-    const { result } = runJSQ(FOOBAR, ['Object.keys(_).forEach(k => echo(k))'])
-    assert.equal(result, 'foo\nbar')
+describe('utils', () => {
+  describe('echo()', () => {
+    test('outputs the argument', () => {
+      const { result } = runJSQ(FOOBAR, ['Object.keys(_).forEach(k => echo(k))'])
+      assert.equal(result, 'foo\nbar')
+    })
+
+    test('ignores the final statement', () => {
+      const { result } = runJSQ('', ['echo("intermediate"); "final result"'])
+      assert.equal(result, 'intermediate')
+    })
   })
 
-  test('ignores the final statement', () => {
-    const { result } = runJSQ('', ['echo("intermediate"); "final result"'])
-    assert.equal(result, 'intermediate')
+  describe('console.*', () => {
+    test('prints to stderr', () => {
+      const { result, stdout, stderr } = runJSQ('', ['console.log("foo"); console.error("bar"); 42'])
+      assert.equal(result, '42')
+      assert.equal(stripAnsi(stderr), 'foo\nbar\n')
+    })
+  })
+
+  describe('exit()', () => {
+    test('ends the process with the exit code', () => {
+      const { status } = runJSQ('', ['exit(42)'])
+      assert.equal(status, 42)
+    })
+  })
+
+  describe('lodash', () => {
+    test('functions are declared in global scope', () => {
+      const { result } = runJSQ(FOOBAR, ['invert(_)'])
+      assert.equal(result, "{ '1': 'foo', '2': 'bar' }")
+    })
+
+    test('user object takes precedence', () => {
+      const { result } = runJSQ(FOOBAR, ['--as', 'invert', 'invert'])
+      assert.equal(result, FOOBAR5)
+    })
+
+    test('user function takes precedence', () => {
+      const { result } = runJSQ('', ['--fn.invert', 'cmd', 'invert'])
+      assert.equal(result, 'cmd')
+    })
   })
 })
 
-describe('exit()', () => {
-  test('ends the process with the exit code', () => {
-    const { status } = runJSQ('', ['exit(42)'])
-    assert.equal(status, 42)
+describe('--as', () => {
+  test('exposes named variable', () => {
+    const { result } = runJSQ(FOOBAR, ['--as', 'foobar', 'foobar'])
+    assert.equal(result, FOOBAR5)
   })
 })
 
-describe('lodash', () => {
-  test('functions are declared in global scope', () => {
-    const { result } = runJSQ(FOOBAR, ['invert(_)'])
-    assert.equal(result, "{ '1': 'foo', '2': 'bar' }")
+describe('--input', () => {
+  test('exposes named variable', () => {
+    const { result } = runJSQ('', ['--input.foobar', FOOBAR, 'foobar'])
+    assert.equal(result, FOOBAR5)
   })
+})
 
-  test('user object takes precedence', () => {
-    const { result } = runJSQ(FOOBAR, ['--as', 'invert', 'invert'])
-    assert.equal(result, '{ foo: 1, bar: 2 }')
-  })
-
-  test('user function takes precedence', () => {
-    const { result } = runJSQ('', ['--fn.invert', 'cmd', 'invert'])
+describe('--function', () => {
+  test('exposes named function', () => {
+    const { result } = runJSQ('', ['--function.myFn', 'cmd', 'myFn'])
     assert.equal(result, 'cmd')
+  })
+
+  test('calls function with args', () => {
+    const { result } = runJSQ('', [
+      '--function.printFoobar',
+      `echo '{0}_${FOOBAR}_{1}'`,
+      'printFoobar("prefix", "suffix")',
+    ])
+    assert.equal(result, `prefix_${FOOBAR}_suffix`)
   })
 })
 
 describe('--json', () => {
   test('outputs raw JSON', () => {
     const { result } = runJSQ(FOOBAR, ['.', '--json'])
-    assert.equal(result, '{"foo":1,"bar":2}')
+    assert.equal(result, FOOBAR)
   })
 })
 
@@ -116,14 +157,20 @@ describe('cache', () => {
   })
 
   test('remembers functions', () => {
-    runJSQ('', ['--fn.myFn', 'mycmd'])
+    runJSQ('', ['--fn.myFn', 'cmd'])
     const { result } = runJSQ('', ['myFn'])
-    assert.equal(result, 'mycmd')
+    assert.equal(result, 'cmd')
   })
 
-  test('prints out content of cache', () => {
-    runJSQ('', ['--fn.myFn', 'mycmd', '--in.foo', '1', '--in.bar', '2'])
+  test('--ls-cache prints out content of cache', () => {
+    runJSQ('', ['--fn.myFn', 'cmd', '--in.foo', '1', '--in.bar', '2'])
     const { stderr } = runJSQ('', ['--ls-cache'])
     assert.match(stderr, /^Cache \(.*\):\n- Values: foo, bar\n- Functions: myFn/)
+  })
+
+  test('--no-cache ignores cache', () => {
+    runJSQ('"foo"')
+    const { result } = runJSQ('', ['--no-cache'])
+    assert.equal(result, 'undefined')
   })
 })
