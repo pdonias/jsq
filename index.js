@@ -37,6 +37,10 @@ const argv = yargs(hideBin(process.argv))
   .alias('help', 'h')
   .alias('version', 'v')
   .example('curl -s https://api.github.com/users/octocat | jsq .followers')
+  .example("curl -s https://jsonplaceholder.typicode.com/todos | jsq '.reduce((n, todo) => n + !todo.completed, 0)'")
+  .example(
+    'cat ~/.config/transmission/stats.json | jsq \'rx = _["downloaded-bytes"]; tx = _["uploaded-bytes"]; tx / rx\''
+  )
   .epilog('Full documentation: https://github.com/pdonias/jsq/blob/master/README.md')
   .command('$0 [expression]', false, yargs =>
     yargs
