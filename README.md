@@ -59,7 +59,7 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq 'a = _.foo; b = _.bar; a + b'
 ```
 
 If the last statement is an object, wrap it with `({ ... })` so that NodeJS doesn't interpret it as a block.
-You may omit `_` as the first character of the expression (`.foo` is treated as `_.foo`)
+You may omit `_` in a dot property access (`.foo` is treated as `_.foo`)
 
 ## Output
 

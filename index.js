@@ -10,7 +10,18 @@ const vm = require('vm')
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
 
-const { debug, fileExists, readStdin, parse, cacheFile, readCache, writeCache, delCache, hasStdin } = require('./utils')
+const {
+  cacheFile,
+  debug,
+  delCache,
+  expandShorthands,
+  fileExists,
+  hasStdin,
+  parse,
+  readCache,
+  readStdin,
+  writeCache,
+} = require('./utils')
 
 const DEFAULT_NAME = '_'
 
@@ -185,15 +196,13 @@ async function main(opts) {
     PRINT_OPTIONS.depth = opts.depth
   }
 
-  // Support expression "."
-  if (expression === '.') {
-    expression = opts.as ?? '_'
+  // Support expressions "." and ""
+  if (expression === '.' || expression === '') {
+    expression = opts.as ?? DEFAULT_NAME
   }
 
-  // Support expressions "" and ".prop"
-  if (expression === '' || expression.startsWith('.')) {
-    expression = (opts.as ?? '_') + expression
-  }
+  // Support expressions containing ".prop"
+  expression = expandShorthands(expression, 'globalThis.__input__')
 
   // Get previously saved values and functions
   const userContext = opts.noCache ? {} : await readCache()
@@ -274,7 +283,8 @@ async function main(opts) {
   })
 
   // Declare main input and last run's output
-  addToContext('_', userContext.in)
+  addToContext(DEFAULT_NAME, userContext.in)
+  addToContext('__input__', userContext.in)
   addToContext('_ans', userContext.out)
 
   // Declare all saved values
@@ -291,7 +301,7 @@ async function main(opts) {
       // Escape with \{i}
       const cmd = pattern.replace(/(?<!\\){(\d+)?}/g, (_, i) => arguments[i ?? 0] ?? '').replace(/\\({\d*})/g, '$1')
 
-      return parse(childProcess.execSync(cmd, { encoding: 'utf8' }), { fallbackRaw: true })
+      return parse(childProcess.execSync(cmd, { encoding: 'utf8', maxBuffer: 1024 ** 3 }), { fallbackRaw: true })
     }
 
     Object.defineProperty(fn, 'cmd', {
@@ -305,7 +315,7 @@ async function main(opts) {
 
   // Add all lodash's helper functions without overriding previous properties
   Object.keys(lodash).forEach(name => {
-    if (name !== '_' && typeof lodash[name] === 'function') {
+    if (name !== DEFAULT_NAME && typeof lodash[name] === 'function') {
       addToContext(name, lodash[name], { override: false })
     }
   })

@@ -1,5 +1,6 @@
-const fs = require('fs').promises
+const acorn = require('acorn')
 const envPaths = require('env-paths').default
+const fs = require('fs').promises
 const path = require('path')
 
 const paths = envPaths('jsq', { suffix: '' })
@@ -9,7 +10,18 @@ const cacheFile = path.join(cacheDir, process.env.CACHE || 'cache.json')
 
 const hasStdin = process.env.STDIN === undefined ? !process.stdin.isTTY : process.env.STDIN === '1'
 
-module.exports = { debug, readStdin, fileExists, parse, cacheFile, readCache, writeCache, delCache, hasStdin }
+module.exports = {
+  cacheFile,
+  debug,
+  delCache,
+  expandShorthands,
+  fileExists,
+  hasStdin,
+  parse,
+  readCache,
+  readStdin,
+  writeCache,
+}
 
 function debug(...args) {
   if (process.env.DEBUG === '1') {
@@ -125,4 +137,43 @@ async function delCache() {
       throw err
     }
   }
+}
+
+function expandShorthands(expression, inputExpr) {
+  // Let the tokenizer throw
+  const tokens = [...acorn.tokenizer(expression, { ecmaVersion: 'latest' })]
+  let result = ''
+  let lastIndex = 0
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i]
+    const next = tokens[i + 1]
+
+    if (token.type.label === '.' && next && next.type.label === 'name') {
+      const prev = tokens[i - 1]
+
+      const isPropertyAccess =
+        prev != null &&
+        [
+          'name', // foo.bar
+          ']', // arr[i].foo
+          ')', // get().foo
+          '}', // { a: 1 }.a
+          'null',
+          'true',
+          'false',
+          'num',
+        ].includes(prev.type.label)
+
+      if (!isPropertyAccess) {
+        // Insert "globalThis.__input__" before dot
+        result += expression.slice(lastIndex, token.start) + inputExpr
+        lastIndex = token.start
+      }
+    }
+  }
+
+  result += expression.slice(lastIndex)
+
+  return result
 }

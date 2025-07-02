@@ -2,6 +2,7 @@ const assert = require('node:assert/strict')
 const path = require('node:path')
 const { describe, test, beforeEach } = require('node:test')
 const { spawnSync } = require('node:child_process')
+const { expandShorthands } = require('./utils')
 
 const BIN = path.resolve('./index.js')
 const FOOBAR = '{"foo":1,"bar":2}'
@@ -27,6 +28,11 @@ describe('access properties', () => {
   test('access properties with dot notation', () => {
     const { result } = runJSQ(FOOBAR, ['.foo'])
     assert.equal(result, '1')
+  })
+
+  test('shorthand dot notation works everywhere in expression', () => {
+    const { result } = runJSQ(FOOBAR, ['.foo + .bar'])
+    assert.equal(result, '3')
   })
 })
 
@@ -172,5 +178,67 @@ describe('cache', () => {
     runJSQ('"foo"')
     const { result } = runJSQ('', ['--no-cache'])
     assert.equal(result, 'undefined')
+  })
+})
+
+describe('expandShorthands', () => {
+  test('expands .foo', () => {
+    const expanded = expandShorthands('.foo', 'input')
+    assert.equal(expanded, 'input.foo')
+  })
+
+  test('expands .foo + .bar', () => {
+    const expanded = expandShorthands('.foo + .bar', 'input')
+    assert.equal(expanded, 'input.foo + input.bar')
+  })
+
+  test('expands {foo:.bar}', () => {
+    const expanded = expandShorthands('{foo:.bar}', 'input')
+    assert.equal(expanded, '{foo:input.bar}')
+  })
+
+  test('expands {....foo}', () => {
+    const expanded = expandShorthands('{....foo}', 'input')
+    assert.equal(expanded, '{...input.foo}')
+  })
+
+  test('does not expand foo.bar', () => {
+    const expanded = expandShorthands('foo.bar', 'input')
+    assert.equal(expanded, 'foo.bar')
+  })
+
+  test('does not expand .5', () => {
+    const expanded = expandShorthands('.5', 'input')
+    assert.equal(expanded, '.5')
+  })
+
+  test('does not expand foo?.()', () => {
+    const expanded = expandShorthands('foo?.()', 'input')
+    assert.equal(expanded, 'foo?.()')
+  })
+
+  test('does not expand // .foo', () => {
+    const expanded = expandShorthands('// .foo', 'input')
+    assert.equal(expanded, '// .foo')
+  })
+
+  test('does not expand /.foo/', () => {
+    const expanded = expandShorthands('/.foo/', 'input')
+    assert.equal(expanded, '/.foo/')
+  })
+
+  test('does not expand ".foo"; \'.bar\'; `.baz`', () => {
+    const expanded = expandShorthands('".foo"; \'.bar\'; `.baz`', 'input')
+    assert.equal(expanded, '".foo"; \'.bar\'; `.baz`')
+  })
+
+  test('properly expands .foo.bar', () => {
+    const expanded = expandShorthands('.foo.bar', 'input')
+    assert.equal(expanded, 'input.foo.bar')
+  })
+
+  test('properly expands .foo?.bar', () => {
+    const expanded = expandShorthands('.foo?.bar', 'input')
+    assert.equal(expanded, 'input.foo?.bar')
   })
 })
