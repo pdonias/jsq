@@ -22,54 +22,50 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq .foo
 
 Or use full JavaScript expressions:
 ```bash
-$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.entries(_).map(entry => entry.join("=")).join("; ")'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.entries(.).map(entry => entry.join("=")).join("; ")'
 foo=1; bar=2
 ```
 
 ## Input
 
-An input is JSON data that is passed to jsq and accessible within the expression as a global variable.
-
-An input can be piped into jsq and named with `--as` (also available as `_`):
+A JSON input can be piped into jsq and optionally named with `--as`:
 ```bash
-$ echo '{ "foo": 1, "bar": 2 }' | jsq --as obj 'obj.foo'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq --as myInput 'myInput.foo'
 1
 ```
 
-Or it can be declared using the `--input.<name>` syntax:
+Inputs can also be declared by passing `--input.<name>` options:
 ```bash
-$ jsq --input.obj '{ "foo": 1, "bar": 2 }' 'obj.foo'
+$ jsq --input.myInput '{ "foo": 1, "bar": 2 }' 'myInput.foo'
 1
 ```
 
-jsq also supports NDJSON from stdin. Early interrupt an NDJSON input with <kbd>Ctrl</kbd> + <kbd>C</kbd>.
-Use `--no-buffer` on `curl` to force it to write immediately to stdout.
-The NDJSON data is then converted to an array and injected in the global variable in the expression.
+jsq also supports NDJSON from stdin. The NDJSON data is converted to an array and injected into the expression like a normal piped input.
+
+> [!TIP]
+> Early interrupt an NDJSON input with <kbd>Ctrl</kbd> + <kbd>C</kbd>.
+> Use `--no-buffer` on `curl` to force it to write immediately to stdout.
 
 ## Expression
 
-Process the input(s) with a native JavaScript expression. Access the inputs as variables in the global scope. You may pass multiple statements and use any NodeJS features. The value of the last statement is the output of jsq.
+You can process the input(s) with a JavaScript expression. The expression may contain multiple statements, the value of the last statement is the output of jsq.
+
+Whether or not you named the piped input with `--as`, it is also accessible in the expression as `.` (also aliased as `_` if you want to avoid invalid JavaScript syntax):
 
 ```bash
-$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.keys(_).join(", ")'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.keys(.).join(", ")'
 foo, bar
 
-$ echo '{ "foo": 1, "bar": 2 }' | jsq 'a = _.foo; b = _.bar; a + b'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'a = .foo; b = _.bar; a + b'
 3
 ```
 
 > [!IMPORTANT]
 > If the last statement is an object, wrap it with `({ ... })` so that NodeJS doesn't interpret it as a block.
 
-### Shorthands
-
-Although the expression is a valid JavaScript expression, jsq offers handy shorthands as syntactic sugar:
-- `.foo` is treated as `_.foo` (e.g. `jsq '.foo + .bar'`)
-- `.` is treated as `_` (e.g. `jsq 'Object.keys(.)'`)
-
 ## Output
 
-jsq outputs the value of the last statement in the expression. If no expression is passed, it outputs the whole input. By default, jsq will pretty-print the result.
+jsq outputs the value of the last statement in the expression. If you don't pass an expression, it will simply format and pretty-print the piped input.
 
 - Use `--depth <n>` if the output is an object to configure how deep the object will be rendered.
 - Use `--json` to output raw JSON instead of pretty-print.
@@ -79,12 +75,13 @@ jsq outputs the value of the last statement in the expression. If no expression 
 Use `--fn.<name> <cmd>` to declare shell-based functions that will also be accessible from within the expression in the global scope. The command may contain `{0}`, `{1}`, `{2}`, ... that will be replaced by the function's arguments when you call it in the expression. `{}` is an alias for `{0}`.
 
 ```bash
-$ echo '{ "foo": 1, "bar": 2 }' | jsq --fn.apiFetch 'curl https://api.com/{0}/{1}' 'apiFetch("user", _.foo)'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq --fn.apiFetch 'curl https://api.com/{0}/{1}' 'apiFetch("user", .foo)'
 { userid: 1, firstname: 'John', lastname: 'Doe' }
 ```
 
 - Use `--resolve <cmd>` or `-r <cmd>` as a shorthand for `--fn.resolve <cmd>`.
 - The output of functions is automatically `JSON.parse`d if possible.
+- Escape a `{i}` with `\{i}`.
 
 ## Utils
 
@@ -92,10 +89,10 @@ Some utility functions are also exposed in the global scope.
 
 ### `echo`
 
-By default, the output of jsq is the value of the last JavaScript statement in the expression. However, if you want to declare the output explicitly, you can call the function `echo` in the expression. You may call it one or multiple times. If you call it at least once, jsq will ignore the value of the last statement. If you call it multiple times, the values will be printed to stdout separated by newlines.
+By default, the output of jsq is the value of the last JavaScript statement in the expression. However, if you want to declare the output explicitly, you can call the function `echo` in the expression. You may call it one or multiple times. If you call it at least once, jsq will ignore the value of the last statement and let you manage the output. If you call it multiple times, the values will be printed to stdout separated by newlines.
 
 ```bash
-$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.entries(_).forEach(([key, value]) => echo(`${key}: ${value}`))'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'Object.entries(.).forEach(([key, value]) => echo(`${key}: ${value}`))'
 foo: 1
 bar: 2
 ```
@@ -113,7 +110,7 @@ You may call `exit` explicitly to end the jsq process early. Pass the exit code 
 All [`lodash`](https://lodash.com/docs) functions are available in the global context, except if one or more of your named inputs or functions override them.
 
 ```js
-$ echo '{ "foo": 1, "bar": 2 }' | jsq 'invert(_)'
+$ echo '{ "foo": 1, "bar": 2 }' | jsq 'invert(.)'
 { '1': 'foo', '2': 'bar' }
 ```
 
@@ -138,7 +135,7 @@ $ jsq --fn.apiFetch 'curl https://api.com/{0}/{1}' 'apiFetch("user", _ans)'
 { userid: 1, firstname: 'John', lastname: 'Doe' }
 
 # and jsq remembers them too
-$ jsq 'apiFetch("user", _.bar)'
+$ jsq 'apiFetch("user", .bar)'
 { userid: 2, firstname: 'Jane', lastname: 'Doe' }
 
 # jsq also remembers the last result as _ans, give it a proper name with --save-as
@@ -158,13 +155,13 @@ $ jsq _ans --save-as jane
 
 ```bash
 $ curl https://api.com/users | jsq # Pipe an input
-$ jsq 'find(_, { firstname: "John", lastname: "Doe" })' # Find an item with Lodash's find
+$ jsq 'find(., { firstname: "John", lastname: "Doe" })' # Find an item with Lodash's find
 $ jsq _ans | jsq # To work on that object, make it the new main input
 $ jsq .friends --save-as friends # Save John's friends into a variable
-$ jsq 'friends.forEach(f => { if (f.age > _.age) { echo(f.firstname) } })' # Print friends that are older than John
+$ jsq 'friends.forEach(f => { if (f.age > .age) { echo(f.firstname) } })' # Print friends that are older than John
 ```
 
-2. Using function and variables
+2. Using functions and variables
 
 ```bash
 $ curl https://api.com/ids | jsq --as userIds # Pipe an input and name it

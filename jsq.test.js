@@ -38,14 +38,14 @@ describe('access properties', () => {
 
 describe('JS expressions', () => {
   test('full JS expressions', () => {
-    const { result } = runJSQ(FOOBAR, ['Object.keys(_).map(k => k + "=" + _[k]).join("; ")'])
+    const { result } = runJSQ(FOOBAR, ['Object.keys(.).map(k => k + "=" + .[k]).join("; ")'])
     assert.equal(result, 'foo=1; bar=2')
   })
 })
 
 describe('multi-statement', () => {
   test('outputs the final statement', () => {
-    const { result } = runJSQ(FOOBAR, ['let z = _.foo + 2; z * _.bar'])
+    const { result } = runJSQ(FOOBAR, ['let z = .foo + 2; z * .bar'])
     assert.equal(result, '6')
   })
 })
@@ -53,7 +53,7 @@ describe('multi-statement', () => {
 describe('utils', () => {
   describe('echo()', () => {
     test('outputs the argument', () => {
-      const { result } = runJSQ(FOOBAR, ['Object.keys(_).forEach(k => echo(k))'])
+      const { result } = runJSQ(FOOBAR, ['Object.keys(.).forEach(k => echo(k))'])
       assert.equal(result, 'foo\nbar')
     })
 
@@ -80,7 +80,7 @@ describe('utils', () => {
 
   describe('lodash', () => {
     test('functions are declared in global scope', () => {
-      const { result } = runJSQ(FOOBAR, ['invert(_)'])
+      const { result } = runJSQ(FOOBAR, ['invert(.)'])
       assert.equal(result, "{ '1': 'foo', '2': 'bar' }")
     })
 
