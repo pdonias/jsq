@@ -138,42 +138,42 @@ async function delCache() {
     }
   }
 }
-
-function expandShorthands(expression, inputExpr) {
-  // Let the tokenizer throw
+const NON_SHORTHAND_LABELS = new Set(['name', 'num', ']', ')', '}', 'null', 'true', 'false'])
+function expandShorthands(expression, replacement) {
   const tokens = [...acorn.tokenizer(expression, { ecmaVersion: 'latest' })]
   let result = ''
-  let lastIndex = 0
+  let cursor = 0
 
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]
     const next = tokens[i + 1]
+    const prev = tokens[i - 1]
 
-    if (token.type.label === '.' && next && next.type.label === 'name') {
-      const prev = tokens[i - 1]
-
-      const isPropertyAccess =
-        prev != null &&
-        [
-          'name', // foo.bar
-          ']', // arr[i].foo
-          ')', // get().foo
-          '}', // { a: 1 }.a
-          'null',
-          'true',
-          'false',
-          'num',
-        ].includes(prev.type.label)
-
-      if (!isPropertyAccess) {
-        // Insert "globalThis.__input__" before dot
-        result += expression.slice(lastIndex, token.start) + inputExpr
-        lastIndex = token.start
-      }
+    if (token.type.label !== '.') {
+      continue
     }
+
+    // Ignore foo.bar
+    const isPropertyAccess =
+      next?.type.label === 'name' &&
+      NON_SHORTHAND_LABELS.has(prev?.type.label)
+
+    // Ignore 1.5
+    const isDecimalNumber =
+      next?.type.label === 'num' &&
+      expression.slice(token.end, next.start).trim() === ''
+
+    if (isPropertyAccess || isDecimalNumber) {
+      continue
+    }
+
+    result += expression.slice(cursor, token.start) + replacement
+    // `.prop` keep the dot, `.` don't keep the dot
+    cursor = next?.type.label === 'name' ? token.start : token.end
   }
 
-  result += expression.slice(lastIndex)
+  // copy-paste the end of the expression that doesn't contain a dot
+  result += expression.slice(cursor)
 
   return result
 }
