@@ -23,7 +23,9 @@ const {
   writeCache,
 } = require('./utils')
 
-const DEFAULT_NAME = '_'
+const DEFAULT_INPUT_NAME = '_'
+const LAST_OUTPUT_NAME = '_ans'
+const RESERVED_WORDS = [DEFAULT_INPUT_NAME, LAST_OUTPUT_NAME, 'console', 'echo', 'exit']
 
 const PRINT_OPTIONS = {
   depth: Infinity,
@@ -178,6 +180,13 @@ async function main(opts) {
     inputNames.push(opts.as)
   }
   const varNames = [...inputNames, ...fnNames]
+
+  const reservedWord = varNames.find(name => RESERVED_WORDS.includes(name))
+  if (reservedWord !== undefined) {
+    console.error(`"${reservedWord}" is a reserved word.`)
+    process.exit(1)
+  }
+
   if (varNames.length > new Set(varNames).size) {
     console.error('There are some conflicts in the input names and function names.')
     console.error('Inputs:', inputNames.join(', '))
@@ -196,13 +205,8 @@ async function main(opts) {
     PRINT_OPTIONS.depth = opts.depth
   }
 
-  // Support expressions "." and ""
-  if (expression === '.' || expression === '') {
-    expression = opts.as ?? DEFAULT_NAME
-  }
-
-  // Support expressions containing ".prop"
-  expression = expandShorthands(expression, `globalThis.${DEFAULT_NAME}`)
+  // Support expressions containing "." and ".prop"
+  expression = expandShorthands(expression || '.', `globalThis.${DEFAULT_INPUT_NAME}`)
 
   // Get previously saved values and functions
   const userContext = opts.noCache ? {} : await readCache()
@@ -283,8 +287,8 @@ async function main(opts) {
   })
 
   // Declare main input and last run's output
-  addToContext(DEFAULT_NAME, userContext.in)
-  addToContext('_ans', userContext.out)
+  addToContext(DEFAULT_INPUT_NAME, userContext.in)
+  addToContext(LAST_OUTPUT_NAME, userContext.out)
 
   // Declare all saved values
   Object.entries(userContext.values).forEach(([name, obj]) => {
@@ -314,7 +318,7 @@ async function main(opts) {
 
   // Add all lodash's helper functions without overriding previous properties
   Object.keys(lodash).forEach(name => {
-    if (name !== DEFAULT_NAME && typeof lodash[name] === 'function') {
+    if (name !== DEFAULT_INPUT_NAME && typeof lodash[name] === 'function') {
       addToContext(name, lodash[name], { override: false })
     }
   })
