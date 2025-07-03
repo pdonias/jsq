@@ -202,7 +202,7 @@ async function main(opts) {
   }
 
   // Support expressions containing ".prop"
-  expression = expandShorthands(expression, 'globalThis.__input__')
+  expression = expandShorthands(expression, `globalThis.${DEFAULT_NAME}`)
 
   // Get previously saved values and functions
   const userContext = opts.noCache ? {} : await readCache()
@@ -284,7 +284,6 @@ async function main(opts) {
 
   // Declare main input and last run's output
   addToContext(DEFAULT_NAME, userContext.in)
-  addToContext('__input__', userContext.in)
   addToContext('_ans', userContext.out)
 
   // Declare all saved values
