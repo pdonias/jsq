@@ -283,7 +283,8 @@ async function main(opts) {
   })
 
   addToContext('exit', exitCode => {
-    process.exit(exitCode)
+    // Handle exit(bool) to stop the process with or without an error
+    process.exit(typeof exitCode === 'boolean' ? (exitCode ? 0 : 1) : exitCode)
   })
 
   // Declare main input and last run's output
