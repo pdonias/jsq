@@ -305,6 +305,8 @@ async function main(opts) {
       // Escape with \{i}
       const cmd = pattern.replace(/(?<!\\){(\d+)?}/g, (_, i) => arguments[i ?? 0] ?? '').replace(/\\({\d*})/g, '$1')
 
+      debug(cmd)
+
       return parse(childProcess.execSync(cmd, { encoding: 'utf8', maxBuffer: 1024 ** 3 }), { fallbackRaw: true })
     }
 
