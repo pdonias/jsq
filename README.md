@@ -61,11 +61,11 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq 'a = .foo; b = _.bar; a + b'
 ```
 
 > [!IMPORTANT]
-> If the last statement is an object, wrap it with `({ ... })` so that NodeJS doesn't interpret it as a block.
+> If the last statement is an inline object, wrap it with `({ ... })` so that NodeJS doesn't interpret it as a block.
 
 ## Output
 
-jsq outputs the value of the last statement in the expression. If you don't pass an expression, it will simply format and pretty-print the piped input.
+If you don't call [echo](#echo) in the expression, jsq outputs the value of the last statement in the expression. If you don't pass an expression, it will simply format and pretty-print the piped input.
 
 - Use `--depth <n>` if the output is an object to configure how deep the object will be rendered.
 - Use `--json` to output raw JSON instead of pretty-print.
@@ -103,7 +103,7 @@ You may call `console.log` and `console.error` to debug your expression. It won'
 
 ### `exit`
 
-You may call `exit` explicitly to end the jsq process early. Pass the exit code as an argument. This can be useful to conditionally return early.
+You may call `exit` explicitly to end the jsq process early. Pass the exit code (or a boolean) as an argument. This can be useful to conditionally return early.
 
 ### `lodash`
 
