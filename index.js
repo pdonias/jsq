@@ -277,9 +277,9 @@ async function main(opts) {
   })
 
   let explicitOutput = false
-  addToContext('echo', arg => {
+  addToContext('echo', (...args) => {
     explicitOutput = true
-    output(arg)
+    args.forEach(arg => output(arg))
   })
 
   addToContext('exit', exitCode => {
