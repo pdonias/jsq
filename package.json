@@ -12,9 +12,12 @@
     "jq",
     "JavaScript",
     "JSON",
+    "NDJSON",
     "query",
     "CLI",
-    "processor"
+    "processor",
+    "parser",
+    "beautifier"
   ],
   "bin": {
     "jsq": "index.js"
