@@ -1,5 +1,12 @@
 # jsq
 
+[![License](https://img.shields.io/npm/l/jsq-cli?color=blue)](./LICENSE)
+[![NPM Version](https://img.shields.io/npm/v/jsq-cli?logo=npm&logoColor=red)](https://www.npmjs.com/package/jsq-cli)
+[![CI status](https://github.com/pdonias/jsq/actions/workflows/main.yml/badge.svg)](https://github.com/pdonias/jsq/actions/workflows/main.yml)
+![Dependencies status](https://img.shields.io/librariesio/github/pdonias/jsq?label=deps)
+[![NPM bundle size](https://img.shields.io/bundlephobia/min/jsq-cli?label=size)](https://bundlephobia.com/package/jsq-cli)
+![NPM Downloads](https://img.shields.io/npm/d18m/jsq-cli)
+
 A command-line JSON processor like [`jq`](https://stedolan.github.io/jq/), but using familiar **JavaScript syntax** instead of a custom DSL.
 
 ## Install
