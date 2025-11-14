@@ -167,13 +167,12 @@ function expandShorthands(expression, replacement) {
       continue
     }
 
-
     result += expression.slice(cursor, token.start) + replacement
     // `.prop` keep the dot, `.` don't keep the dot
     cursor = next?.type.label === 'name' ? token.start : token.end
 
     // Next token needs to see this one as a name
-    token.type.label = 'name'
+    token.type = { ...token.type, label: 'name' }
   }
 
   // copy-paste the end of the expression that doesn't contain a dot

@@ -198,6 +198,11 @@ describe('expandShorthands', () => {
       assert.equal(expanded, '{foo:input.bar}')
     })
 
+    test('expands {..foo}', () => {
+      const expanded = expandShorthands('{..foo}', 'input')
+      assert.equal(expanded, '{input.foo}')
+    })
+
     test('expands {....foo}', () => {
       const expanded = expandShorthands('{....foo}', 'input')
       assert.equal(expanded, '{...input.foo}')
