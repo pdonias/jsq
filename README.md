@@ -7,7 +7,7 @@
 [![NPM bundle size](https://img.shields.io/bundlephobia/min/jsq-cli?label=size)](https://bundlephobia.com/package/jsq-cli)
 ![NPM Downloads](https://img.shields.io/npm/d18m/jsq-cli)
 
-A command-line JSON processor like [`jq`](https://stedolan.github.io/jq/), but using familiar **JavaScript syntax** instead of a custom DSL.
+A command-line JSON processor like [`jq`](https://jqlang.org/), but using familiar **JavaScript syntax** instead of a custom DSL.
 
 ## Install
 
@@ -124,7 +124,7 @@ $ echo '{ "foo": 1, "bar": 2 }' | jsq 'invert(.)'
 ## Cache
 
 By default, jsq remembers:
-- inputs: this is convenient if the command you pipe into jsq takes a while to return. If you need to run mutilple expressions on the same input, you only need to pipe it the first time.
+- inputs: this is convenient if the command you pipe into jsq takes a while to return. If you need to run multiple expressions on the same input, you only need to pipe it the first time.
 - outputs: access the result of the previous run with `_ans` or save the result of a run as a named global variable with `--save-as <name>` to reuse the result of a run in the next ones.
 - functions: similarly, if you configure some helper [functions](#functions), you can reuse them in later calls without redeclaring them.
 
