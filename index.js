@@ -252,7 +252,7 @@ async function main(opts) {
 
   // Build script context ------------------------------------------------------
 
-  const context = vm.createContext({ __proto__: null })
+  const context = vm.createContext({})
 
   const addToContext = (key, value, { override } = {}) => {
     // override:
@@ -268,6 +268,14 @@ async function main(opts) {
       }
     }
     context[key] = value
+  }
+
+  // Node.js globals, skipping self-referential properties and jsq's own reserved names
+  const skipped = new Set(['globalThis', 'global', ...RESERVED_WORDS])
+  for (const key of Object.getOwnPropertyNames(globalThis)) {
+    if (!skipped.has(key)) {
+      addToContext(key, globalThis[key])
+    }
   }
 
   // Default utils
